@@ -34,6 +34,7 @@ public sealed class ReadPageViewModel : PageViewModel
     private bool _isAutoRefresh;
     private int _refreshIntervalSeconds;
     private string _selectionSummary = string.Empty;
+    private bool _isSelectorExpanded = true;
 
     public ReadPageViewModel(MainViewModel main, ReadPageOptions options)
         : base(main, options.Title, options.Glyph, options.Description)
@@ -157,6 +158,13 @@ public sealed class ReadPageViewModel : PageViewModel
                 Main.AddInfo($"【{Title}】已关闭自动刷新");
             }
         }
+    }
+
+    /// <summary>选择区是否展开（开始读取后自动收起，把空间留给结果表格）。</summary>
+    public bool IsSelectorExpanded
+    {
+        get => _isSelectorExpanded;
+        set => SetProperty(ref _isSelectorExpanded, value);
     }
 
     public string SelectionSummary

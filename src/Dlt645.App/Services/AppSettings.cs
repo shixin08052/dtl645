@@ -23,6 +23,8 @@ public sealed class AppSettings
     public double WindowWidth { get; set; } = 1320;
     public double WindowHeight { get; set; } = 860;
     public bool WindowMaximized { get; set; }
+    public bool MonitorCollapsed { get; set; }
+    public double MonitorHeight { get; set; } = 160;
 
     private static readonly JsonSerializerOptions Options = new()
     {

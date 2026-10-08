@@ -95,8 +95,8 @@
                 <RowDefinition Height="Auto"/>   <!-- 1 表号与操作 -->
                 <RowDefinition Height="Auto"/>   <!-- 2 错误提示 -->
                 <RowDefinition Height="*" MinHeight="260"/>    <!-- 3 主区域 -->
-                <RowDefinition Height="6"/>      <!-- 4 分隔条 -->
-                <RowDefinition Height="210" MinHeight="90"/>   <!-- 5 报文监视 -->
+                <RowDefinition x:Name="SplitterRow" Height="6"/>      <!-- 4 分隔条 -->
+                <RowDefinition x:Name="MonitorRow" Height="160" MinHeight="90"/>   <!-- 5 报文监视（可收起） -->
             </Grid.RowDefinitions>
 
             <!-- ====================== 串口连接 ====================== -->
@@ -291,7 +291,7 @@
                 </Border>
             </Grid>
 
-            <GridSplitter Grid.Row="4" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="4"
+            <GridSplitter x:Name="MonitorSplitter" Grid.Row="4" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="4"
                           Background="#CFD8DC" ResizeDirection="Rows" ShowsPreview="False" ToolTip="拖动调整报文窗口高度"/>
 
             <!-- ====================== 报文监视 ====================== -->
@@ -310,7 +310,21 @@
                         <Button Content="导出 TXT" Command="{Binding ExportMonitorCommand}"/>
                         <Button Content="导出诊断信息" Command="{Binding ExportDiagnosticsCommand}"
                                 ToolTip="打包软件版本、串口参数、最近报文和错误日志，发给工程师"/>
-                        <CheckBox Content="自动滚动" IsChecked="{Binding AutoScrollMonitor}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <CheckBox Content="自动滚动" IsChecked="{Binding AutoScrollMonitor}" Margin="8,0,12,0" VerticalAlignment="Center"/>
+                        <ToggleButton x:Name="MonitorToggle" Padding="10,3" MinHeight="26" Cursor="Hand"
+                                      Checked="MonitorToggle_Changed" Unchecked="MonitorToggle_Changed"
+                                      ToolTip="收起报文窗口，给上方结果表格更多空间">
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton">
+                                    <Setter Property="Content" Value="收起报文 ▼"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter Property="Content" Value="展开报文 ▲"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
+                        </ToggleButton>
                     </WrapPanel>
                     <ListBox x:Name="MonitorList" ItemsSource="{Binding MonitorEntries}" ItemTemplate="{StaticResource MonitorItemTemplate}"
                              SelectionMode="Extended" BorderBrush="{StaticResource CardBorderBrush}"

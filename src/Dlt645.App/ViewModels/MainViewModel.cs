@@ -757,6 +757,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await RunExclusiveAsync($"读取{page.Title}", async ct =>
         {
             page.Results.Clear();
+            page.IsSelectorExpanded = false;
             page.LastMeterNo = address.Text;
             page.LastReadTime = DateTime.Now;
             ProgressMax = requests.Count;
@@ -985,7 +986,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// 自动自检：使用模拟电表，依次打开每个功能页、勾选全部数据项读取、导出，
     /// 验证界面绑定与读取流程没有异常。返回失败项列表（为空表示通过）。
     /// </summary>
-    public async Task<IReadOnlyList<string>> RunSelfTestAsync(Func<Task> waitForUi)
+    public async Task<IReadOnlyList<string>> RunSelfTestAsync(Func<Task> waitForUi, Func<double, string?>? checkLayout = null)
     {
         var failures = new List<string>();
         var outDir = Path.Combine(Path.GetTempPath(), "Dlt645Reader-selftest");
@@ -1043,6 +1044,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
             await waitForUi();
             if (page.Results.Count == 0) failures.Add($"【{page.Title}】没有读取结果");
+            if (checkLayout?.Invoke(100) is string layoutProblem) failures.Add($"【{page.Title}】{layoutProblem}");
+            if (page is ReadPageViewModel expanded)
+            {
+                // 重新展开选择区后，结果表格也必须保有可用高度
+                expanded.IsSelectorExpanded = true;
+                await waitForUi();
+                if (checkLayout?.Invoke(70) is string expandedProblem) failures.Add($"【{page.Title}】展开选择区时{expandedProblem}");
+            }
 
             var header = new ExportHeader($"自检 - {page.Title}", page.LastMeterNo ?? MeterAddressText, DateTime.Now);
             ResultExporter.ExportCsv(Path.Combine(outDir, $"{page.Title}.csv"), header, page.Results);

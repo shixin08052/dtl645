@@ -27,6 +27,8 @@ public partial class MainWindow : Window
         if (s.WindowWidth >= MinWidth && s.WindowWidth <= SystemParameters.VirtualScreenWidth) Width = s.WindowWidth;
         if (s.WindowHeight >= MinHeight && s.WindowHeight <= SystemParameters.VirtualScreenHeight) Height = s.WindowHeight;
         if (s.WindowMaximized) WindowState = WindowState.Maximized;
+        if (s.MonitorHeight >= 90 && s.MonitorHeight <= 1000) MonitorRow.Height = new GridLength(s.MonitorHeight);
+        MonitorToggle.IsChecked = s.MonitorCollapsed;
 
         // 订阅 ListBox 自己的 Items（而不是 ViewModel 的集合），保证列表已处理完新增项后再滚动；
         // 并推迟到后台优先级执行，避免在集合变更通知过程中触发布局导致
@@ -50,6 +52,31 @@ public partial class MainWindow : Window
             if (evt is DbtDeviceArrival or DbtDeviceRemoveComplete or DbtDevNodesChanged) _vm.NotifyDeviceChanged();
         }
         return IntPtr.Zero;
+    }
+
+    private double _expandedMonitorHeight = 160;
+
+    /// <summary>收起 / 展开报文监视窗口。</summary>
+    private void MonitorToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        bool collapsed = MonitorToggle.IsChecked == true;
+        if (collapsed)
+        {
+            if (MonitorRow.ActualHeight >= 90) _expandedMonitorHeight = MonitorRow.ActualHeight;
+            else if (MonitorRow.Height.IsAbsolute) _expandedMonitorHeight = MonitorRow.Height.Value;
+            MonitorList.Visibility = Visibility.Collapsed;
+            MonitorSplitter.Visibility = Visibility.Collapsed;
+            MonitorRow.MinHeight = 0;
+            MonitorRow.Height = GridLength.Auto;
+        }
+        else
+        {
+            MonitorList.Visibility = Visibility.Visible;
+            MonitorSplitter.Visibility = Visibility.Visible;
+            MonitorRow.MinHeight = 90;
+            MonitorRow.Height = new GridLength(Math.Max(90, _expandedMonitorHeight));
+        }
+        _vm.Settings.MonitorCollapsed = collapsed;
     }
 
     private void AddressBox_LostFocus(object sender, RoutedEventArgs e) => _vm.NormalizeAddress();
@@ -94,6 +121,7 @@ public partial class MainWindow : Window
         }
         var s = _vm.Settings;
         s.WindowMaximized = WindowState == WindowState.Maximized;
+        s.MonitorHeight = MonitorToggle.IsChecked == true ? _expandedMonitorHeight : MonitorRow.ActualHeight;
         if (WindowState == WindowState.Normal)
         {
             s.WindowWidth = Width;

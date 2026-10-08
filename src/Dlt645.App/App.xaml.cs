@@ -62,11 +62,15 @@ public partial class App : Application
         try
         {
             FileLogger.Info("==== 自检开始 ====");
+            // 按常见笔记本的小屏尺寸（1366×768 / 1920×1080@150%）测试布局
+            window.WindowState = WindowState.Normal;
+            window.Width = 1280;
+            window.Height = 720;
             var failures = await vm.RunSelfTestAsync(async () =>
             {
                 window.UpdateLayout();
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
-            });
+            }, min => CheckResultGridHeight(window, min));
             foreach (var f in failures) FileLogger.Error("自检失败：" + f);
             code = failures.Count == 0 ? 0 : 1;
             FileLogger.Info(code == 0 ? "==== 自检通过 ====" : $"==== 自检失败（{failures.Count} 项） ====");
@@ -78,6 +82,28 @@ public partial class App : Application
         }
         try { window.Close(); } catch { }
         Environment.Exit(code);
+    }
+
+    /// <summary>当前显示的结果表格有数据时，高度必须足够查看和滚动。</summary>
+    private static string? CheckResultGridHeight(DependencyObject root, double minHeight)
+    {
+        foreach (var grid in FindVisible<System.Windows.Controls.DataGrid>(root))
+        {
+            if (grid.Items.Count > 0 && grid.ActualHeight < minHeight)
+                return $"结果表格高度只有 {grid.ActualHeight:F0} 像素（窗口 {((Window)root).ActualWidth:F0}×{((Window)root).ActualHeight:F0}），无法查看结果";
+        }
+        return null;
+    }
+
+    private static IEnumerable<T> FindVisible<T>(DependencyObject parent) where T : FrameworkElement
+    {
+        int n = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < n; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T t && t.IsVisible) yield return t;
+            foreach (var x in FindVisible<T>(child)) yield return x;
+        }
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
