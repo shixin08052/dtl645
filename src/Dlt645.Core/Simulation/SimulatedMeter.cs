@@ -28,10 +28,25 @@ public sealed class SimulatedMeter
     /// <summary>单帧最多携带的数据字节数（不含 DI）。</summary>
     public int MaxDataPerFrame { get; set; } = 48;
 
+    /// <summary>
+    /// 不为 null 时，所有读数据 / 读后续数据请求都返回异常应答（D1H/D2H）并带上该错误字，用于演示 E301。
+    /// </summary>
+    public byte? ForcedErrorWord { get; set; }
+
     /// <summary>指定某个 DI 的应答数据（低字节在前，未加 33H）。</summary>
     public void SetData(uint di, byte[] data)
     {
         lock (_gate) _overrides[di] = data;
+    }
+
+    public void ClearData(uint di)
+    {
+        lock (_gate) _overrides.Remove(di);
+    }
+
+    public void ClearAllData()
+    {
+        lock (_gate) _overrides.Clear();
     }
 
     /// <summary>处理一帧请求，返回应答字节（含 FE 前导）；不应答时返回 null。</summary>
@@ -53,6 +68,7 @@ public sealed class SimulatedMeter
             case ControlCode.ReadData:
             {
                 if (!reqAddr.Matches(Address)) return null;
+                if (ForcedErrorWord is byte forced) return Build(ControlCode.ReadDataError, new[] { forced });
                 if (req.Data.Length < 4) return Build(ControlCode.ReadDataError, new byte[] { 0x01 });
                 uint di = DataId.FromWireBytes(req.Data);
                 var payload = GetData(di);
@@ -71,6 +87,7 @@ public sealed class SimulatedMeter
             case ControlCode.ReadFollow:
             {
                 if (!reqAddr.Matches(Address)) return null;
+                if (ForcedErrorWord is byte forcedFollow) return Build(ControlCode.ReadFollowError, new[] { forcedFollow });
                 if (req.Data.Length < 5) return Build(ControlCode.ReadFollowError, new byte[] { 0x01 });
                 uint di = DataId.FromWireBytes(req.Data);
                 byte seq = req.Data[4];

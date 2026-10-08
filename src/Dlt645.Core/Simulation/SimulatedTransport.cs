@@ -37,6 +37,9 @@ public sealed class SimulatedTransport : ISerialTransport
     /// <summary>接下来 N 次应答的校验和被故意破坏（用于测试重试）。</summary>
     public int CorruptNextResponses { get; set; }
 
+    /// <summary>接下来 N 次应答只发出一半字节（用于演示帧不完整 E203）。</summary>
+    public int TruncateNextResponses { get; set; }
+
     /// <summary>每次 Read 最多返回的字节数，模拟串口分段到达。</summary>
     public int ChunkSize { get; set; } = 7;
 
@@ -97,6 +100,11 @@ public sealed class SimulatedTransport : ISerialTransport
                     {
                         CorruptNextResponses--;
                         response[^2] ^= 0x5A; // 破坏 CS
+                    }
+                    else if (TruncateNextResponses > 0)
+                    {
+                        TruncateNextResponses--;
+                        response = response[..(response.Length / 2)];
                     }
                     _queue.Enqueue((now + ResponseDelayMs, response));
                 }

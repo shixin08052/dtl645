@@ -201,6 +201,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 OnPropertyChanged(nameof(ConnectButtonText));
                 OnPropertyChanged(nameof(CanEditPort));
+                OnPropertyChanged(nameof(IsSimulatorActive));
                 UpdatePortHint();
             }
         }
@@ -212,6 +213,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set
         {
             if (!SetProperty(ref _isConnected, value)) return;
+            OnPropertyChanged(nameof(IsSimulatorActive));
             OnPropertyChanged(nameof(ConnectButtonText));
             OnPropertyChanged(nameof(CanEditPort));
             OnPropertyChanged(nameof(CanEditSerialParams));
@@ -285,6 +287,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private ReadPageViewModel? _commonPage;
 
+    /// <summary>“模拟电表”设置页。</summary>
+    public SimulatorPageViewModel SimulatorPage { get; private set; } = null!;
+
+    /// <summary>当前运行中的模拟串口（未处于模拟模式时为 null）。</summary>
+    public SimulatedTransport? Simulator => _transport as SimulatedTransport;
+
+    /// <summary>模拟电表正在运行（界面显示“模拟模式”标记）。</summary>
+    public bool IsSimulatorActive => IsConnected && UseSimulator;
+
+    /// <summary>从“模拟电表”页一键切换到模拟模式并启动。</summary>
+    public void StartSimulator()
+    {
+        if (IsConnected || IsBusy) return;
+        UseSimulator = true;
+        Connect();
+    }
+
     private void CreatePages()
     {
         _commonPage = new ReadPageViewModel(this, new ReadPageOptions
@@ -326,6 +345,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             AddCategory(cat, "", $"配置表中的自定义分类：{cat}");
 
         Pages.Add(new CustomDiPageViewModel(this));
+        SimulatorPage = new SimulatorPageViewModel(this);
+        Pages.Add(SimulatorPage);
         _selectedPage = Pages[0];
     }
 
@@ -497,7 +518,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ISerialTransport transport;
             if (UseSimulator)
             {
-                transport = new SimulatedTransport(new SimulatedMeter(Catalog));
+                transport = SimulatorPage.CreateTransport();
             }
             else
             {
@@ -529,7 +550,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             State = ConnectionState.PortOpen;
             CurrentError = null;
             AddInfo(UseSimulator
-                ? "已启动模拟电表（表号 000012345678，含红外回显模拟），可直接演示各项读取"
+                ? $"已启动模拟电表（{SimulatorPage.SettingsSummary}），可直接演示各项读取；在左侧“模拟电表”页可注入故障或自定义应答数据"
                 : $"已打开串口 {transport.DisplayName}" + (SelectedPort?.IsCh340 == true ? "（CH340）" : ""));
             SaveSettings();
         }
@@ -962,6 +983,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 if (errors.Count > 0)
                     failures.Add($"【{page.Title}】{errors.Count} 行异常，例如：{errors[0].DisplayName} {errors[0].Status} {errors[0].Value}");
             }
+            else if (page is SimulatorPageViewModel)
+            {
+                continue; // 单独在下面测试
+            }
             else if (page is CustomDiPageViewModel cp)
             {
                 cp.DiText = "00010000";
@@ -1001,6 +1026,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await ReadCommonAsync();
         await waitForUi();
 
+        // 模拟电表页：自定义应答数据与故障注入
+        await SelfTestSimulatorAsync(failures, waitForUi);
+
         FlushMonitor();
         await waitForUi();
         if (MonitorEntries.Count(e => e.Kind == MonitorKind.Rx) == 0) failures.Add("报文监视中没有接收记录");
@@ -1010,6 +1038,74 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Disconnect("自检结束");
         await waitForUi();
         return failures;
+    }
+
+    private async Task SelfTestSimulatorAsync(List<string> failures, Func<Task> waitForUi)
+    {
+        var sim = SimulatorPage;
+        var custom = Pages.OfType<CustomDiPageViewModel>().First();
+        SelectedPage = sim;
+        await waitForUi();
+        int savedRetries = Retries;
+
+        async Task<ReadResultRow?> ReadCustom(string di)
+        {
+            SelectedPage = custom;
+            custom.DiText = di;
+            custom.SelectedFormat = CustomDiPageViewModel.AutoFormat;
+            int before = custom.Results.Count;
+            await ReadCustomAsync(custom);
+            await waitForUi();
+            return custom.Results.Count > before ? custom.Results[before] : null;
+        }
+
+        // 1. 自定义应答数据：高字节在前输入 00 00 12 34 → 12.34 kWh
+        sim.CustomDi = "00010000";
+        sim.CustomData = "00 00 12 34";
+        sim.CustomMsbFirst = true;
+        if (!sim.CustomPreview.Contains("12.34")) failures.Add($"【模拟电表】预览解析错误：{sim.CustomPreview}");
+        sim.SetCustomDataCommand.Execute(null);
+        var row = await ReadCustom("00010000");
+        if (row?.Value != "12.34") failures.Add($"【模拟电表】自定义数据读取结果应为 12.34，实际 {row?.Value} {row?.Status}");
+        sim.ClearCustomDataCommand.Execute(null);
+
+        // 2. 异常应答
+        sim.SelectedErrorWord = sim.ErrorWordOptions.First(o => o.Value == 0x02);
+        row = await ReadCustom("00010000");
+        if (row is not { IsError: true } || !row.Status.Contains("无请求数据")) failures.Add($"【模拟电表】注入异常应答后结果不对：{row?.Status}");
+        sim.ResetFaultsCommand.Execute(null);
+
+        // 3. 不应答 → 超时
+        Retries = 0;
+        sim.NoResponse = true;
+        row = await ReadCustom("00010000");
+        if (row is not { IsError: true } || !row.Status.StartsWith("E201", StringComparison.Ordinal)) failures.Add($"【模拟电表】不应答时应为 E201，实际 {row?.Status}");
+        if (State != ConnectionState.Timeout) failures.Add($"【模拟电表】超时后指示灯状态应为“通讯超时”，实际 {StateText}");
+        sim.NoResponse = false;
+
+        // 4. 帧不完整（不重试）
+        sim.InjectTruncateCommand.Execute(null);
+        row = await ReadCustom("00010000");
+        if (row is not { IsError: true } || !row.Status.StartsWith("E203", StringComparison.Ordinal)) failures.Add($"【模拟电表】注入不完整帧后应为 E203，实际 {row?.Status}");
+
+        // 5. 校验错误，重试后恢复
+        Retries = savedRetries;
+        sim.InjectChecksumCommand.Execute(null);
+        row = await ReadCustom("00010000");
+        if (row is null || row.IsError) failures.Add($"【模拟电表】校验错误重试后应成功，实际 {row?.Status}");
+        if (State != ConnectionState.CommOk) failures.Add($"【模拟电表】恢复后指示灯应为“通讯正常”，实际 {StateText}");
+
+        // 6. 修改模拟表号后读取表号
+        sim.AddressText = "202600000001";
+        sim.ApplyAddressCommand.Execute(null);
+        await ReadAddressAsync();
+        if (MeterAddressText != "202600000001") failures.Add($"【模拟电表】修改模拟表号后读取表号应为 202600000001，实际 {MeterAddressText}");
+        sim.AddressText = SimulatorPageViewModel.DefaultAddress;
+        sim.ApplyAddressCommand.Execute(null);
+        MeterAddressText = MeterAddress.WildcardText;
+        sim.ResetFaultsCommand.Execute(null);
+        SelectedPage = sim;
+        await waitForUi();
     }
 
     // ================================================================ 其他

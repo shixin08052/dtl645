@@ -209,3 +209,57 @@ public class MeterClientTests
         Assert.StartsWith("E201", err.Status);
     }
 }
+
+public class SimulatorFaultTests
+{
+    private static readonly DataItemCatalog Catalog = DataItemCatalog.LoadBuiltIn();
+
+    private static (MeterClient Client, SimulatedTransport Transport) Create()
+    {
+        var t = new SimulatedTransport(new SimulatedMeter(Catalog)) { ResponseDelayMs = 5 };
+        t.Open();
+        return (new MeterClient(t, new CommOptions { TimeoutMs = 300, Retries = 0, ErrorSettleMs = 100 }), t);
+    }
+
+    [Fact]
+    public async Task ForcedErrorWord_GivesMeterErrorResponse()
+    {
+        var (client, t) = Create();
+        t.Meter.ForcedErrorWord = 0x04;
+        var ex = await Assert.ThrowsAsync<MeterException>(() => client.ReadDataAsync(MeterAddress.Wildcard, 0x00010000));
+        Assert.Equal(ErrorCode.MeterErrorResponse, ex.Code);
+        Assert.Contains("密码错或未授权", ex.Message);
+    }
+
+    [Fact]
+    public async Task Truncated_GivesIncompleteFrame()
+    {
+        var (client, t) = Create();
+        t.TruncateNextResponses = 1;
+        var ex = await Assert.ThrowsAsync<MeterException>(() => client.ReadDataAsync(MeterAddress.Wildcard, 0x00010000));
+        Assert.Equal(ErrorCode.IncompleteFrame, ex.Code);
+    }
+
+    [Fact]
+    public async Task NoResponse_GivesTimeoutWithEchoHint()
+    {
+        var (client, t) = Create();
+        t.Respond = false;
+        var ex = await Assert.ThrowsAsync<MeterException>(() => client.ReadDataAsync(MeterAddress.Wildcard, 0x00010000));
+        Assert.Equal(ErrorCode.Timeout, ex.Code);
+        Assert.Contains("回显", ex.Message);
+    }
+
+    [Fact]
+    public async Task CustomData_IsReturnedAndDecoded()
+    {
+        var (client, t) = Create();
+        t.Meter.SetData(0x00010000, Hex.Parse("34 12 00 00"));
+        var r = await client.ReadDataAsync(MeterAddress.Wildcard, 0x00010000);
+        var f = DataItemDecoder.Decode(Catalog.Find(0x00010000)!.Item, r.Data);
+        Assert.Equal("12.34", f[0].Text);
+        t.Meter.ClearData(0x00010000);
+        r = await client.ReadDataAsync(MeterAddress.Wildcard, 0x00010000);
+        Assert.NotEqual("12.34", DataItemDecoder.Decode(Catalog.Find(0x00010000)!.Item, r.Data)[0].Text);
+    }
+}

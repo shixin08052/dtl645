@@ -24,6 +24,9 @@
         <DataTemplate DataType="{x:Type vm:CustomDiPageViewModel}">
             <views:CustomDiPageView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SimulatorPageViewModel}">
+            <views:SimulatorPageView/>
+        </DataTemplate>
 
         <!-- 报文监视的一行 -->
         <DataTemplate x:Key="MonitorItemTemplate" DataType="{x:Type comm:MonitorEntry}">
@@ -128,7 +131,9 @@
                             <TextBox Width="40" Text="{Binding Retries, UpdateSourceTrigger=LostFocus}" ToolTip="失败后自动重发的次数，0~5"/>
                             <TextBlock Text="次" Style="{StaticResource Label}" Margin="4,0,20,0"/>
                             <CheckBox Content="模拟电表模式（不接硬件演示 / 测试）" IsChecked="{Binding UseSimulator}"
-                                      IsEnabled="{Binding CanEditSerialParams}" VerticalAlignment="Center"/>
+                                      IsEnabled="{Binding CanEditSerialParams}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <TextBlock Text="← 更多模拟设置与故障注入见左侧“模拟电表”页" Foreground="{StaticResource MutedTextBrush}"
+                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
                         </WrapPanel>
                         <TextBlock Text="{Binding PortHint}" Foreground="#C62828" TextWrapping="Wrap" Margin="76,6,0,0"
                                    Visibility="{Binding PortHint, Converter={StaticResource NotEmptyToVis}}"/>
@@ -148,8 +153,14 @@
                                                           Color="{Binding State, Converter={StaticResource StateToBrush}}"/>
                                     </Ellipse.Effect>
                                 </Ellipse>
-                                <TextBlock Text="{Binding StateText}" FontSize="16" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"
-                                           Foreground="{Binding State, Converter={StaticResource StateToBrush}}"/>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding StateText}" FontSize="16" FontWeight="Bold"
+                                               Foreground="{Binding State, Converter={StaticResource StateToBrush}}"/>
+                                    <Border Background="#FF8F00" CornerRadius="3" Padding="6,0" HorizontalAlignment="Left" Margin="0,2,0,0"
+                                            Visibility="{Binding IsSimulatorActive, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="模拟模式" Foreground="White" FontSize="12"/>
+                                    </Border>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
