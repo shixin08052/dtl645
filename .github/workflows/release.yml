@@ -1,0 +1,61 @@
+name: release
+
+# 推送 v* 标签（如 v1.0.0）时：在 Windows 上测试、打包单文件 exe，并发布到 GitHub Releases
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的标签（如 v1.0.0）'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 单元测试
+        run: dotnet test tests/Dlt645.Core.Tests -c Release
+
+      - name: 发布单文件 exe
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          dotnet publish src/Dlt645.App -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false `
+            -p:Version=$version -o publish
+          Copy-Item src/Dlt645.Core/DataItems/DataItems.json publish/DataItems.json.sample
+          Compress-Archive -Path publish/Dlt645Reader.exe, publish/DataItems.json.sample -DestinationPath "publish/Dlt645Reader-$($env:TAG)-win-x64.zip"
+
+      - name: 创建 Release 并上传
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: DL/T645 红外抄表工具 ${{ env.TAG }}
+          body: |
+            ## 下载
+            - **Dlt645Reader.exe**：单文件，免安装，Windows 10/11 x64 双击运行，无需管理员权限、无需安装 .NET
+            - **Dlt645Reader-${{ env.TAG }}-win-x64.zip**：exe + 数据项配置模板（`DataItems.json.sample`，改名为 `DataItems.json` 放到 exe 同目录即可扩展数据项）
+
+            ## 使用
+            1. 插入 CH340 红外通讯头，选择标有【CH340】的串口，默认 2400 / 8 / E / 1，点“打开串口”
+            2. 对准电表红外窗口，点“读取表号”，再点“一键读取常用数据”
+            3. 没有硬件时可勾选“模拟电表模式”演示
+
+            日志写在 exe 所在目录的 `logs` 文件夹。详细说明见 README。
+          files: |
+            publish/Dlt645Reader.exe
+            publish/Dlt645Reader-${{ env.TAG }}-win-x64.zip

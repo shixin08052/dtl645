@@ -201,7 +201,8 @@ dotnet publish src\Dlt645.App -c Release -r win-x64 --self-contained true ^
 > 如需更小的体积（约 1 MB），可改用 `--self-contained false`，但目标电脑需安装 “.NET 8 桌面运行时”。
 
 ### GitHub Actions
-推送代码后 `.github/workflows/build.yml` 会在 Windows 上运行测试并发布 exe，在 Actions 页面的 Artifacts 中下载 `Dlt645Reader-win-x64`。
+* 推送代码后 `.github/workflows/build.yml` 会在 Windows 上运行测试并发布 exe，在 Actions 页面的 Artifacts 中下载 `Dlt645Reader-win-x64`。
+* 推送 `v*` 标签（如 `git tag v1.0.1 && git push origin v1.0.1`）时，`.github/workflows/release.yml` 会自动打包并发布到 **Releases** 页面（`Dlt645Reader.exe` 与 zip 包）。
 
 > Core 类库和单元测试可在 Linux/macOS 上运行；WPF 项目设置了 `EnableWindowsTargeting`，在非 Windows 系统上也能编译，但只能在 Windows 上运行。
 
