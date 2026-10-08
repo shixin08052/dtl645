@@ -19,6 +19,8 @@ public sealed class AppSettings
     public int TimeoutMs { get; set; } = CommOptions.DefaultTimeoutMs;
     public int Retries { get; set; } = CommOptions.DefaultRetries;
     public bool UseSimulator { get; set; }
+    /// <summary>读取上 N 月数据时自动读取结算日，换算成具体日期。</summary>
+    public bool AutoSettlementDate { get; set; } = true;
     public int RefreshIntervalSeconds { get; set; } = 3;
     public double WindowWidth { get; set; } = 1320;
     public double WindowHeight { get; set; } = 860;

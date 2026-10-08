@@ -8,16 +8,26 @@ namespace Dlt645.App.ViewModels;
 public sealed class SelectableOption<T> : ObservableObject
 {
     private bool _isChecked;
+    private string _label;
 
     public SelectableOption(T value, string label, bool isChecked = false)
     {
         Value = value;
-        Label = label;
+        _label = label;
+        BaseLabel = label;
         _isChecked = isChecked;
     }
 
     public T Value { get; }
-    public string Label { get; }
+
+    /// <summary>原始文字（如“上1月”）；Label 可能附加结算日期（如“上1月 10-01”）。</summary>
+    public string BaseLabel { get; }
+
+    public string Label
+    {
+        get => _label;
+        set => SetProperty(ref _label, value);
+    }
 
     public bool IsChecked
     {

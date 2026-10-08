@@ -16,12 +16,12 @@ public sealed record ExportHeader(string Title, string MeterNo, DateTime ReadTim
 public static class ResultExporter
 {
     private static readonly string[] Columns =
-        { "序号", "数据项", "费率", "时段", "数值", "单位", "数据标识", "原始数据", "状态", "读取时间", "耗时(ms)" };
+        { "序号", "数据项", "费率", "时段", "结算日期", "数值", "单位", "数据标识", "原始数据", "状态", "读取时间", "耗时(ms)" };
 
     private static IEnumerable<object?[]> Rows(IEnumerable<ReadResultRow> rows) =>
         rows.Select(r => new object?[]
         {
-            r.Index, r.DisplayName, r.Tariff, r.Period, (object?)r.Number ?? r.Value, r.Unit, r.Di, r.Raw, r.Status,
+            r.Index, r.DisplayName, r.Tariff, r.Period, r.SettlementDate, (object?)r.Number ?? r.Value, r.Unit, r.Di, r.Raw, r.Status,
             r.TimeText, r.ElapsedMs,
         });
 
@@ -71,7 +71,7 @@ public static class ResultExporter
         sheet.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
         sheet.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
         sheet.Append("<cols>");
-        int[] widths = { 6, 34, 6, 12, 18, 8, 11, 26, 22, 20, 9 };
+        int[] widths = { 6, 34, 6, 12, 14, 18, 8, 11, 26, 22, 20, 9 };
         for (int i = 0; i < widths.Length; i++)
             sheet.Append($"<col min=\"{i + 1}\" max=\"{i + 1}\" width=\"{widths[i]}\" customWidth=\"1\"/>");
         sheet.Append("</cols><sheetData>");

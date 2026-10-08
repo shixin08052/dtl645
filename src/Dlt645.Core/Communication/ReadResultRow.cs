@@ -12,6 +12,8 @@ public sealed class ReadResultRow
     public string Field { get; init; } = string.Empty;
     public string Tariff { get; init; } = string.Empty;
     public string Period { get; init; } = string.Empty;
+    /// <summary>上 N 月（结算日）对应的具体结算日期，如 “2026-10-01”。</summary>
+    public string SettlementDate { get; init; } = string.Empty;
     public string Di { get; init; } = string.Empty;
     public string Value { get; init; } = string.Empty;
     public string Unit { get; init; } = string.Empty;
@@ -29,7 +31,8 @@ public sealed class ReadResultRow
     public string TimeText => Time.ToString("yyyy-MM-dd HH:mm:ss");
 
     /// <summary>把一次成功读取展开为若干行（每个字段一行）。</summary>
-    public static IEnumerable<ReadResultRow> FromSuccess(ReadRequest req, DataResult res, IReadOnlyList<DecodedField> fields)
+    public static IEnumerable<ReadResultRow> FromSuccess(ReadRequest req, DataResult res, IReadOnlyList<DecodedField> fields,
+        string? settlementDate = null)
     {
         string status = "成功";
         bool warning = false;
@@ -48,6 +51,7 @@ public sealed class ReadResultRow
                 Field = f.Name,
                 Tariff = req.TariffText,
                 Period = req.PeriodText,
+                SettlementDate = settlementDate ?? string.Empty,
                 Di = DataId.Format(res.Di),
                 Value = f.Text,
                 Unit = f.Unit,
@@ -60,11 +64,12 @@ public sealed class ReadResultRow
         }
     }
 
-    public static ReadResultRow FromError(ReadRequest req, MeterException ex) => new()
+    public static ReadResultRow FromError(ReadRequest req, MeterException ex, string? settlementDate = null) => new()
     {
         Item = req.Item.Name,
         Tariff = req.TariffText,
         Period = req.PeriodText,
+        SettlementDate = settlementDate ?? string.Empty,
         Di = req.DiText,
         Value = "--",
         Status = StatusOf(ex),

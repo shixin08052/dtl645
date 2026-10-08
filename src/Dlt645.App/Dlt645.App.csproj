@@ -12,7 +12,7 @@
     <!-- 允许在非 Windows 系统上编译（CI / 交叉编译），运行仍需 Windows -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Product>DL/T645 红外抄表工具</Product>
     <Description>DL/T 645-2007 电表红外读取工具（只读）</Description>
     <Company>DLT645 Reader</Company>

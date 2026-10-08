@@ -35,6 +35,7 @@ public sealed class ReadPageViewModel : PageViewModel
     private int _refreshIntervalSeconds;
     private string _selectionSummary = string.Empty;
     private bool _isSelectorExpanded = true;
+    private string _settlementText = string.Empty;
 
     public ReadPageViewModel(MainViewModel main, ReadPageOptions options)
         : base(main, options.Title, options.Glyph, options.Description)
@@ -99,6 +100,8 @@ public sealed class ReadPageViewModel : PageViewModel
         MonthsCurrentCommand = new RelayCommand(() => { foreach (var m in MonthOptions) m.IsChecked = m.Value == 0; });
         MonthsNoneCommand = new RelayCommand(() => SetAll(MonthOptions, false));
         TariffsAllCommand = new RelayCommand(() => SetAll(TariffOptions, true));
+        ReadSettlementCommand = new AsyncRelayCommand(() => Main.ReadSettlementAsync(), () => !Main.IsBusy);
+        ApplyCalendar(null);
 
         UpdateSummary();
     }
@@ -180,6 +183,28 @@ public sealed class ReadPageViewModel : PageViewModel
     public ICommand MonthsCurrentCommand { get; }
     public ICommand MonthsNoneCommand { get; }
     public ICommand TariffsAllCommand { get; }
+    public ICommand ReadSettlementCommand { get; }
+
+    /// <summary>结算日说明，如“结算日：每月1日0时（电表时间 2026-10-08 16:30）”。</summary>
+    public string SettlementText
+    {
+        get => _settlementText;
+        private set => SetProperty(ref _settlementText, value);
+    }
+
+    /// <summary>根据结算日历更新月份按钮文字（附加具体日期）和说明。</summary>
+    public void ApplyCalendar(SettlementCalendar? calendar)
+    {
+        foreach (var m in MonthOptions)
+        {
+            var date = m.Value >= 1 ? calendar?.ShortTextFor(m.Value) : null;
+            m.Label = date is null ? m.BaseLabel : $"{m.BaseLabel} {date}";
+        }
+        if (!ShowMonths) SettlementText = string.Empty;
+        else SettlementText = calendar is null
+            ? "结算日：未读取。勾选“自动换算”后，读取上N月数据时会自动读取结算日，并在结果中显示具体结算日期。"
+            : "结算日：" + calendar.Describe();
+    }
 
     /// <summary>根据当前勾选生成读取请求列表。</summary>
     public IReadOnlyList<ReadRequest> BuildRequests()

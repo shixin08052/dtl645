@@ -21,6 +21,7 @@
             <DataGridTextColumn Header="数据项" Binding="{Binding DisplayName, Mode=OneWay}" Width="2*" MinWidth="180"/>
             <DataGridTextColumn Header="费率" Binding="{Binding Tariff, Mode=OneWay}" Width="46"/>
             <DataGridTextColumn Header="时段" Binding="{Binding Period, Mode=OneWay}" Width="86"/>
+            <DataGridTextColumn Header="结算日期" Binding="{Binding SettlementDate, Mode=OneWay}" Width="96"/>
             <DataGridTextColumn Header="数值" Binding="{Binding Value, Mode=OneWay}" Width="1.4*" MinWidth="130">
                 <DataGridTextColumn.ElementStyle>
                     <Style TargetType="TextBlock">

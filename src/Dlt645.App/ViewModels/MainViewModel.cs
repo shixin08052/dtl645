@@ -248,6 +248,95 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _ => "未连接",
     };
 
+    // ================================================================ 结算日
+
+    private SettlementCalendar? _calendar;
+    private string? _calendarKey;
+
+    /// <summary>读取上 N 月数据时自动读取结算日，换算成具体日期。</summary>
+    public bool AutoSettlementDate
+    {
+        get => Settings.AutoSettlementDate;
+        set
+        {
+            if (Settings.AutoSettlementDate == value) return;
+            Settings.AutoSettlementDate = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private void SetCalendar(SettlementCalendar? calendar, string? key)
+    {
+        _calendar = calendar;
+        _calendarKey = key;
+        foreach (var p in Pages.OfType<ReadPageViewModel>()) p.ApplyCalendar(calendar);
+    }
+
+    /// <summary>
+    /// 读取结算日（04000B01~03）和电表时钟（04000101/04000102），建立结算日历。
+    /// 第 1 结算日读不到时直接放弃（不影响后续正常读取）；电表时钟读不到时按电脑时间计算。
+    /// </summary>
+    private async Task<SettlementCalendar?> LoadSettlementAsync(MeterClient client, MeterAddress address, CancellationToken ct)
+    {
+        var previous = ProgressText;
+        ProgressText = "正在读取结算日和电表时间…";
+        var days = new List<SettlementDay>();
+        foreach (var di in new[] { SettlementCalendar.SettlementDay1, SettlementCalendar.SettlementDay2, SettlementCalendar.SettlementDay3 })
+        {
+            try
+            {
+                var r = await client.ReadDataAsync(address, di, ct);
+                if (SettlementCalendar.TryParseDay(r.Data, out var d)) days.Add(d!);
+            }
+            catch (MeterException ex) when (!ex.IsPortFault && ex.Code != ErrorCode.NotConnected)
+            {
+                if (di == SettlementCalendar.SettlementDay1)
+                {
+                    AddInfo($"未能读取结算日（{ex.Code.ToCodeString()} {ex.Info.Title}），结果中只显示“上N月”，不换算日期");
+                    ProgressText = previous;
+                    return null;
+                }
+            }
+        }
+        if (days.Count == 0)
+        {
+            AddInfo("电表未设置有效的结算日（04000B01~03），结果中只显示“上N月”，不换算日期");
+            ProgressText = previous;
+            return null;
+        }
+
+        DateTime now = DateTime.Now;
+        bool fromMeter = false;
+        try
+        {
+            var date = await client.ReadDataAsync(address, SettlementCalendar.MeterDate, ct);
+            var time = await client.ReadDataAsync(address, SettlementCalendar.MeterTime, ct);
+            fromMeter = SettlementCalendar.TryParseMeterClock(date.Data, time.Data, out now);
+            if (!fromMeter) now = DateTime.Now;
+        }
+        catch (MeterException ex) when (!ex.IsPortFault && ex.Code != ErrorCode.NotConnected)
+        {
+            now = DateTime.Now;
+        }
+
+        var calendar = new SettlementCalendar(days, now, fromMeter);
+        SetCalendar(calendar, address.Text);
+        AddInfo("结算日：" + calendar.Describe());
+        ProgressText = previous;
+        return calendar;
+    }
+
+    /// <summary>“读取结算日”按钮：强制重新读取。</summary>
+    public async Task ReadSettlementAsync()
+    {
+        if (!EnsureReady(out var client, out var address)) return;
+        await RunExclusiveAsync("读取结算日", async ct =>
+        {
+            var cal = await LoadSettlementAsync(client, address, ct);
+            ProgressText = cal is null ? "未能读取结算日" : "结算日：" + cal.Describe();
+        });
+    }
+
     // ================================================================ 表号
 
     public string MeterAddressText
@@ -257,6 +346,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (!SetProperty(ref _meterAddressText, value)) return;
             AddressError = MeterAddress.TryParse(value, out _, out var err) ? null : err;
+            if (_calendar != null && _calendarKey != value) SetCalendar(null, null);
         }
     }
 
@@ -611,6 +701,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _transport = null;
         _client = null;
         if (IsConnected) AddInfo($"已断开（{reason}）");
+        if (_calendar != null) SetCalendar(null, null);
         IsConnected = false;
         State = ConnectionState.NotConnected;
     }
@@ -772,6 +863,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ProgressMax = requests.Count;
             if (!page.IsAutoRefresh) AddInfo($"开始读取【{page.Title}】，共 {requests.Count} 次通讯，表号 {address.Text}");
 
+            // 有“上N月 / 上N结算日”时，先读结算日把它换算成具体日期（每块表只读一次）
+            SettlementCalendar? calendar = null;
+            if (AutoSettlementDate && requests.Any(r => r.Item.History == HistoryKind.Month && r.History >= 1))
+            {
+                calendar = _calendar != null && _calendarKey == address.Text
+                    ? _calendar
+                    : await LoadSettlementAsync(client, address, ct);
+            }
+            string? SettlementOf(ReadRequest r) =>
+                calendar != null && r.Item.History == HistoryKind.Month && r.History >= 1 ? calendar.DateTextFor(r.History) : null;
+
             int ok = 0, fail = 0, consecutiveTimeouts = 0;
             MeterException? lastError = null;
             bool stoppedEarly = false;
@@ -784,7 +886,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 {
                     var res = await client.ReadDataAsync(address, req.Di, ct);
                     var fields = DataItemDecoder.Decode(req.Item, res.Data);
-                    page.AddRows(ReadResultRow.FromSuccess(req, res, fields));
+                    page.AddRows(ReadResultRow.FromSuccess(req, res, fields, SettlementOf(req)));
                     if (res.Warnings.Count > 0) ShowError(res.Warnings[0], warning: true);
                     // 应答中带回的实际表号，便于导出
                     if (address.HasWildcard) page.LastMeterNo = res.ResponseAddress.Text;
@@ -793,7 +895,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
                 catch (MeterException ex) when (!ex.IsPortFault && ex.Code != ErrorCode.NotConnected)
                 {
-                    page.AddRows(new[] { ReadResultRow.FromError(req, ex) });
+                    page.AddRows(new[] { ReadResultRow.FromError(req, ex, SettlementOf(req)) });
                     fail++;
                     lastError = ex;
                     consecutiveTimeouts = ex.Code == ErrorCode.Timeout ? consecutiveTimeouts + 1 : 0;
@@ -1024,6 +1126,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 foreach (var m in rp.MonthOptions) m.IsChecked = m.Value is 0 or 12;
                 if (rp.TimesOptions.Count > 1) rp.SelectedTimes = rp.TimesOptions[1];
                 await ReadPageAsync(rp);
+                if (rp.ShowMonths) SelfTestSettlement(rp, failures);
                 var errors = rp.Results.Where(r => r.IsError || r.IsWarning).ToList();
                 if (errors.Count > 0)
                     failures.Add($"【{page.Title}】{errors.Count} 行异常，例如：{errors[0].DisplayName} {errors[0].Status} {errors[0].Value}");
@@ -1103,6 +1206,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Disconnect("自检结束");
         await waitForUi();
         return failures;
+    }
+
+    /// <summary>模拟电表结算日为每月1日0时：上12月应换算为 11 个月前的 1 日。</summary>
+    private static void SelfTestSettlement(ReadPageViewModel page, List<string> failures)
+    {
+        var now = DateTime.Now;
+        var expected = new DateTime(now.Year, now.Month, 1).AddMonths(-11).ToString("yyyy-MM-dd");
+        var rows = page.Results.Where(r => r.Period.StartsWith("上12", StringComparison.Ordinal)).ToList();
+        if (rows.Count == 0)
+            failures.Add($"【{page.Title}】没有上12月的结果行");
+        else if (rows.Any(r => r.SettlementDate != expected))
+            failures.Add($"【{page.Title}】上12月结算日期应为 {expected}，实际 {rows.First(r => r.SettlementDate != expected).SettlementDate}");
+        var chip = page.MonthOptions.FirstOrDefault(m => m.Value == 12);
+        if (chip != null && !chip.Label.Contains(expected[5..], StringComparison.Ordinal))
+            failures.Add($"【{page.Title}】月份按钮未显示结算日期：{chip.Label}");
+        if (!page.SettlementText.Contains("1日0时", StringComparison.Ordinal))
+            failures.Add($"【{page.Title}】结算日说明不对：{page.SettlementText}");
     }
 
     private async Task SelfTestSimulatorAsync(List<string> failures, Func<Task> waitForUi)
