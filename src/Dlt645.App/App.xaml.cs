@@ -76,8 +76,8 @@ public partial class App : Application
             FileLogger.Error("自检异常", ex);
             code = 3;
         }
-        window.Close();
-        Shutdown(code);
+        try { window.Close(); } catch { }
+        Environment.Exit(code);
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -85,9 +85,8 @@ public partial class App : Application
         FileLogger.Error("界面线程未处理的异常", e.Exception);
         if (IsSelfTest)
         {
-            e.Handled = true;
-            Shutdown(2);
-            return;
+            // 自检时界面异常立即以退出码 2 结束，避免弹窗或关闭确认导致 CI 卡住
+            Environment.Exit(2);
         }
         var sb = new StringBuilder();
         sb.AppendLine("程序发生了意外错误（E999），已记录到日志。");

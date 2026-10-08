@@ -33,6 +33,10 @@ public sealed record MonitorEntry(DateTime Time, MonitorKind Kind, byte[]? Bytes
 
     public string HexText => Bytes is null ? string.Empty : Protocol.Hex.ToHex(Bytes);
 
+    // 每条记录都是独立的一行：按引用比较，避免内容相同的两行在列表控件中被视为同一项
+    public bool Equals(MonitorEntry? other) => ReferenceEquals(this, other);
+    public override int GetHashCode() => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);
+
     public override string ToString() =>
         Bytes is null
             ? $"{Time:yyyy-MM-dd HH:mm:ss.fff} [{KindText}] {Text}"

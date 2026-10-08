@@ -28,7 +28,10 @@ public partial class MainWindow : Window
         if (s.WindowHeight >= MinHeight && s.WindowHeight <= SystemParameters.VirtualScreenHeight) Height = s.WindowHeight;
         if (s.WindowMaximized) WindowState = WindowState.Maximized;
 
-        vm.MonitorEntries.CollectionChanged += OnMonitorChanged;
+        // 订阅 ListBox 自己的 Items（而不是 ViewModel 的集合），保证列表已处理完新增项后再滚动；
+        // 并推迟到后台优先级执行，避免在集合变更通知过程中触发布局导致
+        // “ItemsControl is inconsistent with its items source” 异常
+        ((INotifyCollectionChanged)MonitorList.Items).CollectionChanged += OnMonitorChanged;
         Closing += OnClosing;
     }
 
@@ -53,11 +56,18 @@ public partial class MainWindow : Window
 
     private void OnMonitorChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action != NotifyCollectionChangedAction.Add || !_vm.AutoScrollMonitor || MonitorList.Items.Count == 0) return;
-        // 用户正在多选复制时不打断
-        if (MonitorList.SelectedItems.Count > 1) return;
-        MonitorList.ScrollIntoView(MonitorList.Items[^1]);
+        if (e.Action != NotifyCollectionChangedAction.Add || !_vm.AutoScrollMonitor || _scrollPending) return;
+        _scrollPending = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            _scrollPending = false;
+            // 用户正在多选复制时不打断
+            if (MonitorList.Items.Count == 0 || MonitorList.SelectedItems.Count > 1) return;
+            MonitorList.ScrollIntoView(MonitorList.Items[^1]);
+        }, System.Windows.Threading.DispatcherPriority.Background);
     }
+
+    private bool _scrollPending;
 
     private void MonitorCopy_Executed(object sender, ExecutedRoutedEventArgs e)
     {
@@ -76,7 +86,7 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (_vm.IsBusy && MessageBox.Show(this, "正在读取数据，确定要退出吗？", "确认退出",
+        if (_vm.IsBusy && !App.IsSelfTest && MessageBox.Show(this, "正在读取数据，确定要退出吗？", "确认退出",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
         {
             e.Cancel = true;
