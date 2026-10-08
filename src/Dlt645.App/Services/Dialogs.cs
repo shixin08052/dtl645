@@ -20,6 +20,16 @@ public static class Dialogs
         return dlg.ShowDialog(Application.Current?.MainWindow) == true ? dlg.FileName : null;
     }
 
+    public static string? OpenFile(string title, string filter)
+    {
+        var dlg = new OpenFileDialog { Title = title, Filter = filter, CheckFileExists = true };
+        return dlg.ShowDialog(Application.Current?.MainWindow) == true ? dlg.FileName : null;
+    }
+
+    /// <summary>是 / 否 / 取消 三选一。</summary>
+    public static MessageBoxResult Ask(string message, string title) =>
+        MessageBox.Show(Application.Current?.MainWindow!, message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
     public static void Info(string message) =>
         MessageBox.Show(Application.Current?.MainWindow!, message, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
 

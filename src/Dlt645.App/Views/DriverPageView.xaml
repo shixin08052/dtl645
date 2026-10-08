@@ -1,0 +1,134 @@
+<UserControl x:Class="Dlt645.App.Views.DriverPageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tr="clr-namespace:Dlt645.Core.Transport;assembly=Dlt645.Core">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold" Foreground="#263238"/>
+            <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
+
+            <!-- 结论 -->
+            <Border CornerRadius="4" Padding="14,10" BorderThickness="1" Margin="0,0,0,8">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="#FFF8E1"/>
+                        <Setter Property="BorderBrush" Value="#FFE082"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Health}" Value="{x:Static tr:DriverHealth.Ok}">
+                                <Setter Property="Background" Value="#E8F5E9"/>
+                                <Setter Property="BorderBrush" Value="#A5D6A7"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Health}" Value="{x:Static tr:DriverHealth.DeviceProblem}">
+                                <Setter Property="Background" Value="#FDECEA"/>
+                                <Setter Property="BorderBrush" Value="#EF9A9A"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LastCheckText}" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding HealthTitle}" FontSize="17" FontWeight="Bold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#E65100"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Health}" Value="{x:Static tr:DriverHealth.Ok}">
+                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Health}" Value="{x:Static tr:DriverHealth.DeviceProblem}">
+                                            <Setter Property="Foreground" Value="#C62828"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DockPanel>
+                    <TextBlock Text="{Binding Report.Summary}" TextWrapping="Wrap" FontSize="14" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 操作 -->
+            <WrapPanel Margin="0,0,0,8">
+                <Button Content="重新检测" Command="{Binding RefreshCommand}" MinHeight="34"/>
+                <Button Content="安装驱动（需管理员确认）" Command="{Binding InstallCommand}" Style="{StaticResource PrimaryButton}" MinHeight="34" MinWidth="170"
+                        ToolTip="优先使用程序文件夹中的 CH341SER.EXE；没有时可选择文件或打开官网下载"/>
+                <Button Content="选择驱动文件安装…" Command="{Binding InstallFromFileCommand}" MinHeight="34"
+                        ToolTip="支持 CH341SER.EXE、官方压缩包 CH341SER.ZIP、或解压后的 .INF"/>
+                <Button Content="打开设备管理器" Command="{Binding OpenDeviceManagerCommand}" MinHeight="34"/>
+                <Button Content="沁恒官网下载驱动" Command="{Binding OpenDownloadPageCommand}" MinHeight="34"/>
+                <TextBlock Text="正在安装驱动，请在弹出的窗口中操作…" Foreground="#E65100" VerticalAlignment="Center" FontWeight="SemiBold"
+                           Visibility="{Binding IsInstalling, Converter={StaticResource BoolToVis}}"/>
+            </WrapPanel>
+
+            <!-- 已插入的设备 -->
+            <Border BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Background="#FAFCFE" Padding="12,8" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="已插入的沁恒 USB 串口设备（VID 1A86）" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                    <TextBlock Text="未检测到。请确认红外通讯头已插入电脑 USB 口（尽量不要经过 USB 集线器）。" Foreground="{StaticResource MutedTextBrush}"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasDevices}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <DataGrid ItemsSource="{Binding Devices}" Style="{StaticResource ResultGrid}" MaxHeight="200"
+                              Visibility="{Binding HasDevices, Converter={StaticResource BoolToVis}}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="芯片" Binding="{Binding Chip, Mode=OneWay}" Width="70"/>
+                            <DataGridTextColumn Header="设备名称" Binding="{Binding Name, Mode=OneWay}" Width="1.4*"/>
+                            <DataGridTextColumn Header="状态" Binding="{Binding StatusText, Mode=OneWay}" Width="2*"/>
+                            <DataGridTextColumn Header="串口" Binding="{Binding PortName, Mode=OneWay}" Width="60"/>
+                            <DataGridTextColumn Header="驱动版本" Binding="{Binding DriverText, Mode=OneWay}" Width="1.4*"/>
+                            <DataGridTextColumn Header="硬件 ID" Binding="{Binding HardwareId, Mode=OneWay}" Width="1.6*" FontFamily="Consolas"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- 系统驱动与安装包 -->
+            <Border BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Background="#FAFCFE" Padding="12,8" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="系统中的 CH340 驱动" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                    <TextBlock Text="{Binding DriverFileText}" TextWrapping="Wrap" FontFamily="Consolas, Microsoft YaHei UI"/>
+                    <TextBlock Text="离线安装包" Style="{StaticResource SectionTitle}" Margin="0,10,0,6"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="打开程序文件夹" Command="{Binding OpenProgramFolderCommand}" VerticalAlignment="Top"/>
+                        <TextBlock Text="{Binding LocalInstallerText}" TextWrapping="Wrap" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasLocalInstaller}" Value="True">
+                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 说明 -->
+            <Border BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="12,8">
+                <StackPanel>
+                    <TextBlock Text="说明" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                    <TextBlock TextWrapping="Wrap" LineHeight="22" Foreground="#37474F">
+                        <Run Text="• Windows 10/11 联网时，插入红外通讯头通常会自动安装驱动，无需手动操作。"/><LineBreak/>
+                        <Run Text="• Windows 7/8、离线电脑或禁止自动安装驱动的电脑需要手动安装：点“安装驱动”，在系统弹出的权限提示中选择“是”，再在沁恒安装窗口中点“安装 / INSTALL”。"/><LineBreak/>
+                        <Run Text="• 现场离线使用：把沁恒官网的 CH341SER.EXE 和本程序放在同一个 U 盘文件夹里，就能直接一键安装。"/><LineBreak/>
+                        <Run Text="• 安装完成后拔下红外通讯头，等待 3 秒再插回；设备管理器“端口 (COM 和 LPT)”中出现“USB-SERIAL CH340 (COMx)”即表示正常。"/><LineBreak/>
+                        <Run Text="• 安装驱动需要管理员权限（一次性）；本程序日常运行不需要管理员权限。"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

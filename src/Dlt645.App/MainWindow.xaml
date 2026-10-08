@@ -24,6 +24,9 @@
         <DataTemplate DataType="{x:Type vm:CustomDiPageViewModel}">
             <views:CustomDiPageView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DriverPageViewModel}">
+            <views:DriverPageView/>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:SimulatorPageViewModel}">
             <views:SimulatorPageView/>
         </DataTemplate>
@@ -135,8 +138,11 @@
                             <TextBlock Text="← 更多模拟设置与故障注入见左侧“模拟电表”页" Foreground="{StaticResource MutedTextBrush}"
                                        VerticalAlignment="Center" Margin="8,0,0,0"/>
                         </WrapPanel>
-                        <TextBlock Text="{Binding PortHint}" Foreground="#C62828" TextWrapping="Wrap" Margin="76,6,0,0"
-                                   Visibility="{Binding PortHint, Converter={StaticResource NotEmptyToVis}}"/>
+                        <DockPanel Margin="76,6,0,0" Visibility="{Binding PortHint, Converter={StaticResource NotEmptyToVis}}">
+                            <Button DockPanel.Dock="Right" Content="驱动检测与安装" Command="{Binding OpenDriverPageCommand}"
+                                    Style="{StaticResource DangerButton}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            <TextBlock Text="{Binding PortHint}" Foreground="#C62828" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </DockPanel>
                     </StackPanel>
 
                     <!-- 连接按钮与指示灯 -->

@@ -15,6 +15,8 @@ public enum ErrorCode
     PortWriteFailed = 105,
     Ch340NotFound = 106,
     NotConnected = 107,
+    Ch340DriverMissing = 108,
+    DriverInstallFailed = 109,
 
     Timeout = 201,
     ChecksumError = 202,

@@ -97,6 +97,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearMonitorCommand = new RelayCommand(() => MonitorEntries.Clear(), () => MonitorEntries.Count > 0);
         ExportMonitorCommand = new RelayCommand(ExportMonitor, () => MonitorEntries.Count > 0);
         ExportDiagnosticsCommand = new RelayCommand(ExportDiagnostics);
+        OpenDriverPageCommand = new RelayCommand(() => SelectedPage = DriverPage);
 
         CreatePages();
 
@@ -287,6 +288,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private ReadPageViewModel? _commonPage;
 
+    /// <summary>“驱动检测”页。</summary>
+    public DriverPageViewModel DriverPage { get; private set; } = null!;
+
+    private string? _lastDriverProblem;
+
     /// <summary>“模拟电表”设置页。</summary>
     public SimulatorPageViewModel SimulatorPage { get; private set; } = null!;
 
@@ -345,6 +351,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             AddCategory(cat, "", $"配置表中的自定义分类：{cat}");
 
         Pages.Add(new CustomDiPageViewModel(this));
+        DriverPage = new DriverPageViewModel(this);
+        Pages.Add(DriverPage);
         SimulatorPage = new SimulatorPageViewModel(this);
         Pages.Add(SimulatorPage);
         _selectedPage = Pages[0];
@@ -435,6 +443,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand ClearMonitorCommand { get; }
     public ICommand ExportMonitorCommand { get; }
     public ICommand ExportDiagnosticsCommand { get; }
+    public ICommand OpenDriverPageCommand { get; }
 
     // ================================================================ 串口枚举
 
@@ -465,6 +474,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedPort = list.FirstOrDefault(p => string.Equals(p.PortName, previous, StringComparison.OrdinalIgnoreCase))
                        ?? list.FirstOrDefault(p => p.IsCh340)
                        ?? list.FirstOrDefault();
+
+        // 驱动检测：插着 CH340 但没有驱动时，系统里根本不会出现串口，必须单独检测
+        var report = DriverPage.Refresh();
+        var problem = report.ProblemDevice;
+        if (problem != null && problem.InstanceId != _lastDriverProblem && !UseSimulator)
+        {
+            ShowError(new MeterException(ErrorCode.Ch340DriverMissing, report.Summary));
+            AddMonitor(MonitorKind.Error, "驱动检测：" + report.Summary);
+        }
+        else if (problem == null && _lastDriverProblem != null && report.Health == DriverHealth.Ok)
+        {
+            AddInfo("驱动检测：" + report.Summary);
+            if (CurrentError?.Code == ErrorCode.Ch340DriverMissing.ToCodeString()) CurrentError = null;
+        }
+        _lastDriverProblem = problem?.InstanceId;
         UpdatePortHint();
 
         if (userInitiated)
@@ -482,12 +506,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void UpdatePortHint()
     {
+        var driver = DriverPage.Report;
         if (UseSimulator)
             PortHint = string.Empty;
+        else if (driver.Health == DriverHealth.DeviceProblem)
+            PortHint = driver.Summary + " → 点击右侧“驱动检测与安装”";
         else if (Ports.Count == 0)
-            PortHint = "未检测到任何串口：请插入红外通讯头，并确认已安装 CH340 驱动（设备管理器 → 端口 中应显示 USB-SERIAL CH340）。";
+            PortHint = "未检测到任何串口：请插入红外通讯头，并确认已安装 CH340 驱动（可点击右侧“驱动检测与安装”）。";
         else if (!Ports.Any(p => p.IsCh340))
-            PortHint = "未检测到 CH340 设备：请检查红外通讯头是否插好、CH340 驱动是否安装。如使用其他芯片的通讯头，可直接选择对应串口。";
+            PortHint = "未检测到 CH340 设备：请检查红外通讯头是否插好、CH340 驱动是否安装（可点击右侧“驱动检测与安装”）。如使用其他芯片的通讯头，可直接选择对应串口。";
         else
             PortHint = string.Empty;
     }
@@ -938,6 +965,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (Ports.Count == 0) sb.AppendLine("（无）");
         foreach (var p in Ports) sb.AppendLine(p.Display);
         sb.AppendLine();
+        sb.AppendLine("---- CH340 驱动检测 ----");
+        var dr = DriverPage.Refresh();
+        sb.AppendLine(dr.Summary);
+        foreach (var d in dr.Devices)
+            sb.AppendLine($"{d.Name} | {d.HardwareId} | {d.StatusText} | 串口 {d.PortName ?? "无"} | 驱动 {d.DriverText}");
+        sb.AppendLine($"驱动文件：{dr.InstalledDriverFile ?? "无"} {dr.InstalledDriverVersion}");
+        sb.AppendLine($"驱动包：{(dr.DriverPackages.Count == 0 ? "无" : string.Join("、", dr.DriverPackages))}");
+        sb.AppendLine();
         sb.AppendLine("---- 当前错误提示 ----");
         sb.AppendLine(CurrentError?.ToString() ?? "（无）");
         if (FileLogger.LastWriteError != null) sb.AppendLine($"日志写入失败：{FileLogger.LastWriteError}");
@@ -986,6 +1021,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             else if (page is SimulatorPageViewModel)
             {
                 continue; // 单独在下面测试
+            }
+            else if (page is DriverPageViewModel dp)
+            {
+                var r = dp.Refresh();
+                await waitForUi();
+                if (string.IsNullOrEmpty(r.Summary) || string.IsNullOrEmpty(dp.HealthTitle)) failures.Add("【驱动检测】没有检测结论");
+                AddInfo($"自检：【驱动检测】{r.Health}：{r.Summary}");
+                continue;
             }
             else if (page is CustomDiPageViewModel cp)
             {
