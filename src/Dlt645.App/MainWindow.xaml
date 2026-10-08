@@ -69,7 +69,7 @@
             </StatusBarItem>
             <StatusBarItem Grid.Column="1">
                 <StackPanel Orientation="Horizontal">
-                    <ProgressBar Width="160" Height="14" Maximum="{Binding ProgressMax}" Value="{Binding ProgressValue}"
+                    <ProgressBar Width="160" Height="14" Maximum="{Binding ProgressMax, Mode=OneWay}" Value="{Binding ProgressValue, Mode=OneWay}"
                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" Margin="0,0,8,0"/>
                     <TextBlock Text="{Binding ProgressText}" MaxWidth="420" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>

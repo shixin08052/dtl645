@@ -202,6 +202,7 @@ dotnet publish src\Dlt645.App -c Release -r win-x64 --self-contained true ^
 
 ### GitHub Actions
 * 推送代码后 `.github/workflows/build.yml` 会在 Windows 上运行测试并发布 exe，在 Actions 页面的 Artifacts 中下载 `Dlt645Reader-win-x64`。
+* CI 会以 `Dlt645Reader.exe --selftest` 启动发布出的 exe 做界面自检：使用模拟电表自动打开每个页面、勾选全部数据项读取、开关自动刷新、导出 CSV/Excel/诊断包，任何界面绑定异常或读取失败都会让构建失败（本地也可以这样运行，退出码 0 表示通过，结果见 logs）。
 * 推送 `v*` 标签（如 `git tag v1.0.1 && git push origin v1.0.1`）时，`.github/workflows/release.yml` 会自动打包并发布到 **Releases** 页面（`Dlt645Reader.exe` 与 zip 包）。
 
 > Core 类库和单元测试可在 Linux/macOS 上运行；WPF 项目设置了 `EnableWindowsTargeting`，在非 Windows 系统上也能编译，但只能在 Windows 上运行。

@@ -41,16 +41,54 @@ public partial class App : Application
             return;
         }
 
+        IsSelfTest = e.Args.Any(a => string.Equals(a, "--selftest", StringComparison.OrdinalIgnoreCase));
+        AppSettings.ReadOnly = IsSelfTest;
+
         var settings = AppSettings.Load();
         var vm = new MainViewModel(catalog, settings, warning);
         var window = new MainWindow(vm);
         MainWindow = window;
         window.Show();
+
+        if (IsSelfTest) Dispatcher.InvokeAsync(() => RunSelfTestAsync(window, vm), DispatcherPriority.ApplicationIdle);
+    }
+
+    /// <summary>以 --selftest 启动：自动走一遍所有页面（模拟电表），退出码 0 表示通过。</summary>
+    public static bool IsSelfTest { get; private set; }
+
+    private async Task RunSelfTestAsync(MainWindow window, MainViewModel vm)
+    {
+        int code;
+        try
+        {
+            FileLogger.Info("==== 自检开始 ====");
+            var failures = await vm.RunSelfTestAsync(async () =>
+            {
+                window.UpdateLayout();
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+            });
+            foreach (var f in failures) FileLogger.Error("自检失败：" + f);
+            code = failures.Count == 0 ? 0 : 1;
+            FileLogger.Info(code == 0 ? "==== 自检通过 ====" : $"==== 自检失败（{failures.Count} 项） ====");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("自检异常", ex);
+            code = 3;
+        }
+        window.Close();
+        Shutdown(code);
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         FileLogger.Error("界面线程未处理的异常", e.Exception);
+        if (IsSelfTest)
+        {
+            e.Handled = true;
+            Shutdown(2);
+            return;
+        }
         var sb = new StringBuilder();
         sb.AppendLine("程序发生了意外错误（E999），已记录到日志。");
         sb.AppendLine();

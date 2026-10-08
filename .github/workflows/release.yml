@@ -40,6 +40,15 @@ jobs:
           Copy-Item src/Dlt645.Core/DataItems/DataItems.json publish/DataItems.json.sample
           Compress-Archive -Path publish/Dlt645Reader.exe, publish/DataItems.json.sample -DestinationPath "publish/Dlt645Reader-$($env:TAG)-win-x64.zip"
 
+      - name: 界面自检（模拟电表，自动走遍所有页面）
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath publish/Dlt645Reader.exe -ArgumentList '--selftest' -PassThru
+          $null = $p.Handle
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); Get-Content publish/logs/*.log -Encoding UTF8; throw '自检超时' }
+          Get-Content publish/logs/*.log -Encoding UTF8 | Where-Object { $_ -notmatch '\[报文\]' } | Select-Object -Last 120
+          if ($p.ExitCode -ne 0) { throw "自检失败，退出码 $($p.ExitCode)" }
+
       - name: 创建 Release 并上传
         uses: softprops/action-gh-release@v2
         with:

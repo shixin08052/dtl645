@@ -923,6 +923,95 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return sb.ToString();
     }
 
+    // ================================================================ 自检（--selftest，CI 在 Windows 上运行）
+
+    /// <summary>
+    /// 自动自检：使用模拟电表，依次打开每个功能页、勾选全部数据项读取、导出，
+    /// 验证界面绑定与读取流程没有异常。返回失败项列表（为空表示通过）。
+    /// </summary>
+    public async Task<IReadOnlyList<string>> RunSelfTestAsync(Func<Task> waitForUi)
+    {
+        var failures = new List<string>();
+        var outDir = Path.Combine(Path.GetTempPath(), "Dlt645Reader-selftest");
+        Directory.CreateDirectory(outDir);
+
+        UseSimulator = true;
+        if (!IsConnected) Connect();
+        if (!IsConnected)
+        {
+            failures.Add("模拟电表连接失败");
+            return failures;
+        }
+        await waitForUi();
+
+        await ReadAddressAsync();
+        if (MeterAddressText != "000012345678") failures.Add($"读取表号结果错误：{MeterAddressText}");
+
+        foreach (var page in Pages.ToList())
+        {
+            SelectedPage = page;
+            await waitForUi();
+            if (page is ReadPageViewModel rp)
+            {
+                foreach (var item in rp.Items) item.IsChecked = true;
+                foreach (var t in rp.TariffOptions) t.IsChecked = t.Value is 0 or 4;
+                foreach (var m in rp.MonthOptions) m.IsChecked = m.Value is 0 or 12;
+                if (rp.TimesOptions.Count > 1) rp.SelectedTimes = rp.TimesOptions[1];
+                await ReadPageAsync(rp);
+                var errors = rp.Results.Where(r => r.IsError || r.IsWarning).ToList();
+                if (errors.Count > 0)
+                    failures.Add($"【{page.Title}】{errors.Count} 行异常，例如：{errors[0].DisplayName} {errors[0].Status} {errors[0].Value}");
+            }
+            else if (page is CustomDiPageViewModel cp)
+            {
+                cp.DiText = "00010000";
+                await ReadCustomAsync(cp);
+                cp.SelectedFormat = "XXXXXX.XX";
+                await ReadCustomAsync(cp);
+                cp.SelectedFormat = CustomDiPageViewModel.AutoFormat;
+                cp.DiText = "12345678"; // 模拟表不支持，应得到异常应答行
+                await ReadCustomAsync(cp);
+                if (!cp.Results.Any(r => r.IsError)) failures.Add("【自定义数据标识】未产生预期的异常应答行");
+            }
+            await waitForUi();
+            if (page.Results.Count == 0) failures.Add($"【{page.Title}】没有读取结果");
+
+            var header = new ExportHeader($"自检 - {page.Title}", page.LastMeterNo ?? MeterAddressText, DateTime.Now);
+            ResultExporter.ExportCsv(Path.Combine(outDir, $"{page.Title}.csv"), header, page.Results);
+            ResultExporter.ExportXlsx(Path.Combine(outDir, $"{page.Title}.xlsx"), header, page.Results);
+            AddInfo($"自检：【{page.Title}】{page.Results.Count} 行");
+        }
+
+        // 实时变量自动刷新
+        var realtime = Pages.OfType<ReadPageViewModel>().FirstOrDefault(p => p.SupportsAutoRefresh);
+        if (realtime != null)
+        {
+            SelectedPage = realtime;
+            foreach (var item in realtime.Items) item.IsChecked = item.Definition.Common;
+            realtime.RefreshIntervalSeconds = 1;
+            realtime.IsAutoRefresh = true;
+            await Task.Delay(3500);
+            realtime.IsAutoRefresh = false;
+            while (IsBusy) await Task.Delay(50);
+            await waitForUi();
+            if (realtime.Results.Count == 0) failures.Add("【实时变量】自动刷新没有结果");
+        }
+
+        // 一键读取常用数据
+        await ReadCommonAsync();
+        await waitForUi();
+
+        FlushMonitor();
+        await waitForUi();
+        if (MonitorEntries.Count(e => e.Kind == MonitorKind.Rx) == 0) failures.Add("报文监视中没有接收记录");
+        if (MonitorEntries.Count(e => e.Kind == MonitorKind.Echo) == 0) failures.Add("报文监视中没有回显记录（回显过滤未生效？）");
+
+        DiagnosticsExporter.Export(Path.Combine(outDir, "诊断信息.zip"), BuildDiagnosticsSummary(), MonitorEntries.Select(e => e.ToString()).ToList());
+        Disconnect("自检结束");
+        await waitForUi();
+        return failures;
+    }
+
     // ================================================================ 其他
 
     private static void TrySetClipboard(string text)

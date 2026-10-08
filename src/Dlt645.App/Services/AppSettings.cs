@@ -44,8 +44,12 @@ public sealed class AppSettings
         return new AppSettings();
     }
 
+    /// <summary>自检模式下不写设置文件，避免改动用户的设置。</summary>
+    public static bool ReadOnly { get; set; }
+
     public void Save()
     {
+        if (ReadOnly) return;
         try
         {
             File.WriteAllText(AppPaths.SettingsFile, JsonSerializer.Serialize(this, Options));
