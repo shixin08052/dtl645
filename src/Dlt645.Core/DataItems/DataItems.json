@@ -1,0 +1,225 @@
+// DL/T 645-2007 数据项配置表
+// ---------------------------------------------------------------------------
+// 说明（可直接复制到程序目录下修改，程序启动时优先加载程序目录中的 DataItems.json）：
+//   di          数据标识，按 DI3 DI2 DI1 DI0 顺序书写的 8 位十六进制
+//   format      数据格式：
+//                 XXXXXX.XX / XXX.X / NNNNNN ……  BCD 数值，"." 表示小数位
+//                 YYMMDDhhmm / YYMMDDWW / hhmmss / DDhh ……  日期时间
+//                 NNNNNNNNNNNN  12 位数字串（保留前导 0，用于表号）
+//                 ASCII:n  n 字节 ASCII；HEX:n  n 字节原样十六进制
+//   signed      true 表示最高位为符号位
+//   fields      多字段数据项（如需量值 + 发生时间），按传输顺序列出
+//   tariffs     true 表示 DI1 为费率号（00 总、01 尖、02 峰、03 平、04 谷）
+//   history     Month：DI0 为结算日序号 00 当前、01~0C 上 1~12 月
+//               Times：DI0 为记录序号 01~historyMax（上 N 次）
+//   historyLabel 历史序号显示格式，{0} 为序号
+//   common      true 表示参与“一键读取常用数据”；commonTariffs 指定读哪些费率
+//   sample      模拟电表使用的示例值（日期时间可写 now）
+// ---------------------------------------------------------------------------
+{
+  "version": 1,
+  "categories": [
+    {
+      "name": "电能量",
+      "items": [
+        { "id": "E.CombActive", "name": "组合有功电能", "group": "有功", "di": "00000000", "format": "XXXXXX.XX", "unit": "kWh", "signed": true, "tariffs": true, "history": "Month" },
+        { "id": "E.FwdActive", "name": "正向有功电能", "group": "有功", "di": "00010000", "format": "XXXXXX.XX", "unit": "kWh", "tariffs": true, "history": "Month", "common": true, "commonTariffs": [0, 1, 2, 3, 4] },
+        { "id": "E.RevActive", "name": "反向有功电能", "group": "有功", "di": "00020000", "format": "XXXXXX.XX", "unit": "kWh", "tariffs": true, "history": "Month", "common": true },
+        { "id": "E.CombReactive1", "name": "组合无功1电能", "group": "无功", "di": "00030000", "format": "XXXXXX.XX", "unit": "kvarh", "signed": true, "tariffs": true, "history": "Month" },
+        { "id": "E.CombReactive2", "name": "组合无功2电能", "group": "无功", "di": "00040000", "format": "XXXXXX.XX", "unit": "kvarh", "signed": true, "tariffs": true, "history": "Month" },
+        { "id": "E.Q1", "name": "第一象限无功电能", "group": "四象限无功", "di": "00050000", "format": "XXXXXX.XX", "unit": "kvarh", "tariffs": true, "history": "Month" },
+        { "id": "E.Q2", "name": "第二象限无功电能", "group": "四象限无功", "di": "00060000", "format": "XXXXXX.XX", "unit": "kvarh", "tariffs": true, "history": "Month" },
+        { "id": "E.Q3", "name": "第三象限无功电能", "group": "四象限无功", "di": "00070000", "format": "XXXXXX.XX", "unit": "kvarh", "tariffs": true, "history": "Month" },
+        { "id": "E.Q4", "name": "第四象限无功电能", "group": "四象限无功", "di": "00080000", "format": "XXXXXX.XX", "unit": "kvarh", "tariffs": true, "history": "Month" },
+        { "id": "E.FwdApparent", "name": "正向视在电能", "group": "视在", "di": "00090000", "format": "XXXXXX.XX", "unit": "kVAh", "tariffs": true, "history": "Month" },
+        { "id": "E.RevApparent", "name": "反向视在电能", "group": "视在", "di": "000A0000", "format": "XXXXXX.XX", "unit": "kVAh", "tariffs": true, "history": "Month" },
+        { "id": "E.AFwdActive", "name": "A相正向有功电能", "group": "分相", "di": "00150000", "format": "XXXXXX.XX", "unit": "kWh", "history": "Month" },
+        { "id": "E.ARevActive", "name": "A相反向有功电能", "group": "分相", "di": "00160000", "format": "XXXXXX.XX", "unit": "kWh", "history": "Month" },
+        { "id": "E.BFwdActive", "name": "B相正向有功电能", "group": "分相", "di": "00290000", "format": "XXXXXX.XX", "unit": "kWh", "history": "Month" },
+        { "id": "E.BRevActive", "name": "B相反向有功电能", "group": "分相", "di": "002A0000", "format": "XXXXXX.XX", "unit": "kWh", "history": "Month" },
+        { "id": "E.CFwdActive", "name": "C相正向有功电能", "group": "分相", "di": "003D0000", "format": "XXXXXX.XX", "unit": "kWh", "history": "Month" },
+        { "id": "E.CRevActive", "name": "C相反向有功电能", "group": "分相", "di": "003E0000", "format": "XXXXXX.XX", "unit": "kWh", "history": "Month" }
+      ]
+    },
+    {
+      "name": "最大需量",
+      "items": [
+        { "id": "D.FwdActive", "name": "正向有功最大需量", "group": "有功", "di": "01010000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日", "common": true,
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kW" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.RevActive", "name": "反向有功最大需量", "group": "有功", "di": "01020000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kW" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.CombReactive1", "name": "组合无功1最大需量", "group": "无功", "di": "01030000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kvar", "signed": true }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.CombReactive2", "name": "组合无功2最大需量", "group": "无功", "di": "01040000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kvar", "signed": true }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.Q1", "name": "第一象限无功最大需量", "group": "四象限无功", "di": "01050000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kvar" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.Q2", "name": "第二象限无功最大需量", "group": "四象限无功", "di": "01060000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kvar" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.Q3", "name": "第三象限无功最大需量", "group": "四象限无功", "di": "01070000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kvar" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.Q4", "name": "第四象限无功最大需量", "group": "四象限无功", "di": "01080000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kvar" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.FwdApparent", "name": "正向视在最大需量", "group": "视在", "di": "01090000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kVA" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] },
+        { "id": "D.RevApparent", "name": "反向视在最大需量", "group": "视在", "di": "010A0000", "tariffs": true, "history": "Month", "historyLabel": "上{0}结算日",
+          "fields": [ { "name": "需量", "format": "XX.XXXX", "unit": "kVA" }, { "name": "发生时间", "format": "YYMMDDhhmm" } ] }
+      ]
+    },
+    {
+      "name": "实时变量",
+      "items": [
+        { "id": "V.Ua", "name": "A相电压", "group": "电压", "di": "02010100", "format": "XXX.X", "unit": "V", "common": true },
+        { "id": "V.Ub", "name": "B相电压", "group": "电压", "di": "02010200", "format": "XXX.X", "unit": "V", "common": true },
+        { "id": "V.Uc", "name": "C相电压", "group": "电压", "di": "02010300", "format": "XXX.X", "unit": "V", "common": true },
+        { "id": "V.Ia", "name": "A相电流", "group": "电流", "di": "02020100", "format": "XXX.XXX", "unit": "A", "signed": true, "common": true },
+        { "id": "V.Ib", "name": "B相电流", "group": "电流", "di": "02020200", "format": "XXX.XXX", "unit": "A", "signed": true, "common": true },
+        { "id": "V.Ic", "name": "C相电流", "group": "电流", "di": "02020300", "format": "XXX.XXX", "unit": "A", "signed": true, "common": true },
+        { "id": "V.In", "name": "零线电流", "group": "电流", "di": "02800001", "format": "XXX.XXX", "unit": "A", "signed": true },
+        { "id": "V.P", "name": "总有功功率", "group": "有功功率", "di": "02030000", "format": "XX.XXXX", "unit": "kW", "signed": true, "common": true },
+        { "id": "V.Pa", "name": "A相有功功率", "group": "有功功率", "di": "02030100", "format": "XX.XXXX", "unit": "kW", "signed": true },
+        { "id": "V.Pb", "name": "B相有功功率", "group": "有功功率", "di": "02030200", "format": "XX.XXXX", "unit": "kW", "signed": true },
+        { "id": "V.Pc", "name": "C相有功功率", "group": "有功功率", "di": "02030300", "format": "XX.XXXX", "unit": "kW", "signed": true },
+        { "id": "V.Q", "name": "总无功功率", "group": "无功功率", "di": "02040000", "format": "XX.XXXX", "unit": "kvar", "signed": true },
+        { "id": "V.Qa", "name": "A相无功功率", "group": "无功功率", "di": "02040100", "format": "XX.XXXX", "unit": "kvar", "signed": true },
+        { "id": "V.Qb", "name": "B相无功功率", "group": "无功功率", "di": "02040200", "format": "XX.XXXX", "unit": "kvar", "signed": true },
+        { "id": "V.Qc", "name": "C相无功功率", "group": "无功功率", "di": "02040300", "format": "XX.XXXX", "unit": "kvar", "signed": true },
+        { "id": "V.S", "name": "总视在功率", "group": "视在功率", "di": "02050000", "format": "XX.XXXX", "unit": "kVA", "signed": true },
+        { "id": "V.Sa", "name": "A相视在功率", "group": "视在功率", "di": "02050100", "format": "XX.XXXX", "unit": "kVA", "signed": true },
+        { "id": "V.Sb", "name": "B相视在功率", "group": "视在功率", "di": "02050200", "format": "XX.XXXX", "unit": "kVA", "signed": true },
+        { "id": "V.Sc", "name": "C相视在功率", "group": "视在功率", "di": "02050300", "format": "XX.XXXX", "unit": "kVA", "signed": true },
+        { "id": "V.PF", "name": "总功率因数", "group": "功率因数", "di": "02060000", "format": "X.XXX", "signed": true, "common": true },
+        { "id": "V.PFa", "name": "A相功率因数", "group": "功率因数", "di": "02060100", "format": "X.XXX", "signed": true },
+        { "id": "V.PFb", "name": "B相功率因数", "group": "功率因数", "di": "02060200", "format": "X.XXX", "signed": true },
+        { "id": "V.PFc", "name": "C相功率因数", "group": "功率因数", "di": "02060300", "format": "X.XXX", "signed": true },
+        { "id": "V.Anga", "name": "A相相角", "group": "相角", "di": "02070100", "format": "XXX.X", "unit": "°" },
+        { "id": "V.Angb", "name": "B相相角", "group": "相角", "di": "02070200", "format": "XXX.X", "unit": "°" },
+        { "id": "V.Angc", "name": "C相相角", "group": "相角", "di": "02070300", "format": "XXX.X", "unit": "°" },
+        { "id": "V.Freq", "name": "电网频率", "group": "其他", "di": "02800002", "format": "XX.XX", "unit": "Hz", "common": true },
+        { "id": "V.AvgP", "name": "一分钟有功总平均功率", "group": "其他", "di": "02800003", "format": "XX.XXXX", "unit": "kW", "signed": true },
+        { "id": "V.DemandP", "name": "当前有功需量", "group": "其他", "di": "02800004", "format": "XX.XXXX", "unit": "kW", "signed": true },
+        { "id": "V.DemandQ", "name": "当前无功需量", "group": "其他", "di": "02800005", "format": "XX.XXXX", "unit": "kvar", "signed": true },
+        { "id": "V.DemandS", "name": "当前视在需量", "group": "其他", "di": "02800006", "format": "XX.XXXX", "unit": "kVA", "signed": true },
+        { "id": "V.Temp", "name": "表内温度", "group": "其他", "di": "02800007", "format": "XXX.X", "unit": "℃", "signed": true },
+        { "id": "V.ClockBat", "name": "时钟电池电压", "group": "其他", "di": "02800008", "format": "XX.XX", "unit": "V" },
+        { "id": "V.ReadBat", "name": "停电抄表电池电压", "group": "其他", "di": "02800009", "format": "XX.XX", "unit": "V" },
+        { "id": "V.BatTime", "name": "内部电池工作时间", "group": "其他", "di": "0280000A", "format": "XXXXXXXX", "unit": "分钟" }
+      ]
+    },
+    {
+      "name": "电表参数",
+      "items": [
+        { "id": "P.Date", "name": "日期及星期", "group": "时钟", "di": "04000101", "format": "YYMMDDWW", "sample": "now", "common": true },
+        { "id": "P.Time", "name": "时间", "group": "时钟", "di": "04000102", "format": "hhmmss", "sample": "now", "common": true },
+        { "id": "P.DemandPeriod", "name": "最大需量周期", "group": "时钟", "di": "04000103", "format": "NN", "unit": "分钟", "sample": "15" },
+        { "id": "P.SlipTime", "name": "滑差时间", "group": "时钟", "di": "04000104", "format": "NN", "unit": "分钟", "sample": "1" },
+        { "id": "P.CommAddr", "name": "通信地址", "group": "表计信息", "di": "04000401", "format": "NNNNNNNNNNNN" },
+        { "id": "P.MeterNo", "name": "表号", "group": "表计信息", "di": "04000402", "format": "NNNNNNNNNNNN", "common": true },
+        { "id": "P.AssetNo", "name": "资产管理编码", "group": "表计信息", "di": "04000403", "format": "ASCII:32", "sample": "ZC2025000012345678" },
+        { "id": "P.RatedU", "name": "额定电压", "group": "铭牌", "di": "04000404", "format": "ASCII:6", "sample": "220V" },
+        { "id": "P.RatedI", "name": "额定电流/基本电流", "group": "铭牌", "di": "04000405", "format": "ASCII:6", "sample": "1.5A" },
+        { "id": "P.MaxI", "name": "最大电流", "group": "铭牌", "di": "04000406", "format": "ASCII:6", "sample": "6A" },
+        { "id": "P.ClassP", "name": "有功准确度等级", "group": "铭牌", "di": "04000407", "format": "ASCII:4", "sample": "1.0" },
+        { "id": "P.ClassQ", "name": "无功准确度等级", "group": "铭牌", "di": "04000408", "format": "ASCII:4", "sample": "2.0" },
+        { "id": "P.ConstP", "name": "电表有功常数", "group": "铭牌", "di": "04000409", "format": "NNNNNN", "unit": "imp/kWh", "sample": "1600" },
+        { "id": "P.ConstQ", "name": "电表无功常数", "group": "铭牌", "di": "0400040A", "format": "NNNNNN", "unit": "imp/kvarh", "sample": "1600" },
+        { "id": "P.Model", "name": "电表型号", "group": "铭牌", "di": "0400040B", "format": "ASCII:10", "sample": "DTZY666" },
+        { "id": "P.MfgDate", "name": "生产日期", "group": "铭牌", "di": "0400040C", "format": "ASCII:10", "sample": "2024-05-20" },
+        { "id": "P.ProtoVer", "name": "协议版本号", "group": "铭牌", "di": "0400040D", "format": "ASCII:16", "sample": "DL/T645-2007" },
+        { "id": "P.Status1", "name": "电表运行状态字1", "group": "状态与费率", "di": "04000501", "format": "HEX:2", "sample": "0000", "common": true },
+        { "id": "P.Status3", "name": "电表运行状态字3", "group": "状态与费率", "di": "04000503", "format": "HEX:2", "sample": "0000" },
+        { "id": "P.ZoneCount", "name": "年时区数", "group": "状态与费率", "di": "04000201", "format": "NN", "sample": "1" },
+        { "id": "P.TableCount", "name": "日时段表数", "group": "状态与费率", "di": "04000202", "format": "NN", "sample": "2" },
+        { "id": "P.SegCount", "name": "日时段数", "group": "状态与费率", "di": "04000203", "format": "NN", "sample": "8" },
+        { "id": "P.TariffCount", "name": "费率数", "group": "状态与费率", "di": "04000204", "format": "NN", "sample": "4" },
+        { "id": "P.SettleDay1", "name": "每月第1结算日", "group": "状态与费率", "di": "04000B01", "format": "DDhh", "sample": "0100" }
+      ]
+    },
+    {
+      "name": "事件记录",
+      "items": [
+        { "id": "EV.LossV.Count", "name": "失压次数及累计时间", "group": "电压类", "di": "03010000",
+          "fields": [ { "name": "A相失压总次数", "format": "XXXXXX", "unit": "次" }, { "name": "A相失压累计时间", "format": "XXXXXX", "unit": "分钟" },
+                      { "name": "B相失压总次数", "format": "XXXXXX", "unit": "次" }, { "name": "B相失压累计时间", "format": "XXXXXX", "unit": "分钟" },
+                      { "name": "C相失压总次数", "format": "XXXXXX", "unit": "次" }, { "name": "C相失压累计时间", "format": "XXXXXX", "unit": "分钟" } ] },
+        { "id": "EV.LossV.A", "name": "A相失压记录", "group": "电压类", "di": "03010101", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" } ], "note": "记录其余部分以原始数据显示" },
+        { "id": "EV.LossV.B", "name": "B相失压记录", "group": "电压类", "di": "03010201", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" } ] },
+        { "id": "EV.LossV.C", "name": "C相失压记录", "group": "电压类", "di": "03010301", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" } ] },
+        { "id": "EV.Break.Count", "name": "断相次数及累计时间", "group": "电压类", "di": "03040000",
+          "fields": [ { "name": "A相断相总次数", "format": "XXXXXX", "unit": "次" }, { "name": "A相断相累计时间", "format": "XXXXXX", "unit": "分钟" },
+                      { "name": "B相断相总次数", "format": "XXXXXX", "unit": "次" }, { "name": "B相断相累计时间", "format": "XXXXXX", "unit": "分钟" },
+                      { "name": "C相断相总次数", "format": "XXXXXX", "unit": "次" }, { "name": "C相断相累计时间", "format": "XXXXXX", "unit": "分钟" } ] },
+        { "id": "EV.Break.A", "name": "A相断相记录", "group": "电压类", "di": "03040101", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" } ] },
+        { "id": "EV.LossI.Count", "name": "失流次数及累计时间", "group": "电流类", "di": "030B0000",
+          "fields": [ { "name": "A相失流总次数", "format": "XXXXXX", "unit": "次" }, { "name": "A相失流累计时间", "format": "XXXXXX", "unit": "分钟" },
+                      { "name": "B相失流总次数", "format": "XXXXXX", "unit": "次" }, { "name": "B相失流累计时间", "format": "XXXXXX", "unit": "分钟" },
+                      { "name": "C相失流总次数", "format": "XXXXXX", "unit": "次" }, { "name": "C相失流累计时间", "format": "XXXXXX", "unit": "分钟" } ] },
+        { "id": "EV.PowerDown.Count", "name": "掉电总次数", "group": "掉电", "di": "03110000", "format": "XXXXXX", "unit": "次", "common": true },
+        { "id": "EV.PowerDown", "name": "掉电记录", "group": "掉电", "di": "03110001", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" }, { "name": "结束时刻", "format": "YYMMDDhhmmss" } ] },
+        { "id": "EV.Program.Count", "name": "编程总次数", "group": "编程与清零", "di": "03300000", "format": "XXXXXX", "unit": "次", "common": true },
+        { "id": "EV.Program", "name": "编程记录", "group": "编程与清零", "di": "03300001", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" }, { "name": "操作者代码", "format": "HEX:4", "sample": "00000001" },
+                      { "name": "编程数据标识1", "format": "HEX:4", "sample": "04000101" }, { "name": "编程数据标识2", "format": "HEX:4", "sample": "04000102" },
+                      { "name": "编程数据标识3", "format": "HEX:4", "sample": "FFFFFFFF" }, { "name": "编程数据标识4", "format": "HEX:4", "sample": "FFFFFFFF" },
+                      { "name": "编程数据标识5", "format": "HEX:4", "sample": "FFFFFFFF" }, { "name": "编程数据标识6", "format": "HEX:4", "sample": "FFFFFFFF" },
+                      { "name": "编程数据标识7", "format": "HEX:4", "sample": "FFFFFFFF" }, { "name": "编程数据标识8", "format": "HEX:4", "sample": "FFFFFFFF" },
+                      { "name": "编程数据标识9", "format": "HEX:4", "sample": "FFFFFFFF" }, { "name": "编程数据标识10", "format": "HEX:4", "sample": "FFFFFFFF" } ] },
+        { "id": "EV.MeterClear.Count", "name": "电表清零总次数", "group": "编程与清零", "di": "03300100", "format": "XXXXXX", "unit": "次" },
+        { "id": "EV.MeterClear", "name": "电表清零记录", "group": "编程与清零", "di": "03300101", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" }, { "name": "操作者代码", "format": "HEX:4", "sample": "00000001" } ] },
+        { "id": "EV.DemandClear.Count", "name": "需量清零总次数", "group": "编程与清零", "di": "03300200", "format": "XXXXXX", "unit": "次" },
+        { "id": "EV.EventClear.Count", "name": "事件清零总次数", "group": "编程与清零", "di": "03300300", "format": "XXXXXX", "unit": "次" },
+        { "id": "EV.EventClear", "name": "事件清零记录", "group": "编程与清零", "di": "03300301", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" }, { "name": "操作者代码", "format": "HEX:4", "sample": "00000001" },
+                      { "name": "事件清零数据标识", "format": "HEX:4", "sample": "FFFFFFFF" } ] },
+        { "id": "EV.TimeSet.Count", "name": "校时总次数", "group": "编程与清零", "di": "03300400", "format": "XXXXXX", "unit": "次" },
+        { "id": "EV.TimeSet", "name": "校时记录", "group": "编程与清零", "di": "03300401", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "操作者代码", "format": "HEX:4", "sample": "00000001" }, { "name": "校时前时间", "format": "YYMMDDhhmmss" },
+                      { "name": "校时后时间", "format": "YYMMDDhhmmss" } ] },
+        { "id": "EV.Cover.Count", "name": "开表盖总次数", "group": "开盖", "di": "03300D00", "format": "XXXXXX", "unit": "次", "common": true },
+        { "id": "EV.Cover", "name": "开表盖记录", "group": "开盖", "di": "03300D01", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" }, { "name": "结束时刻", "format": "YYMMDDhhmmss" },
+                      { "name": "开盖前正向有功总电能", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "开盖前反向有功总电能", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "开盖前第一象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" }, { "name": "开盖前第二象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" },
+                      { "name": "开盖前第三象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" }, { "name": "开盖前第四象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" },
+                      { "name": "开盖后正向有功总电能", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "开盖后反向有功总电能", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "开盖后第一象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" }, { "name": "开盖后第二象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" },
+                      { "name": "开盖后第三象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" }, { "name": "开盖后第四象限无功总电能", "format": "XXXXXX.XX", "unit": "kvarh" } ] },
+        { "id": "EV.Terminal.Count", "name": "开端钮盒总次数", "group": "开盖", "di": "03300E00", "format": "XXXXXX", "unit": "次" },
+        { "id": "EV.Terminal", "name": "开端钮盒记录", "group": "开盖", "di": "03300E01", "history": "Times", "historyMax": 10,
+          "fields": [ { "name": "发生时刻", "format": "YYMMDDhhmmss" }, { "name": "结束时刻", "format": "YYMMDDhhmmss" } ] }
+      ]
+    },
+    {
+      "name": "冻结数据",
+      "items": [
+        { "id": "F.Timed.Time", "name": "定时冻结时间", "group": "定时冻结", "di": "05000001", "format": "YYMMDDhhmm", "history": "Times", "historyMax": 12 },
+        { "id": "F.Timed.Fwd", "name": "定时冻结正向有功电能", "group": "定时冻结", "di": "05000101", "history": "Times", "historyMax": 12,
+          "fields": [ { "name": "总", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "尖", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "峰", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "平", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "谷", "format": "XXXXXX.XX", "unit": "kWh" } ] },
+        { "id": "F.Timed.Rev", "name": "定时冻结反向有功电能", "group": "定时冻结", "di": "05000201", "history": "Times", "historyMax": 12,
+          "fields": [ { "name": "总", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "尖", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "峰", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "平", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "谷", "format": "XXXXXX.XX", "unit": "kWh" } ] },
+        { "id": "F.Instant.Time", "name": "瞬时冻结时间", "group": "瞬时冻结", "di": "05010001", "format": "YYMMDDhhmm", "history": "Times", "historyMax": 3 },
+        { "id": "F.Instant.Fwd", "name": "瞬时冻结正向有功电能", "group": "瞬时冻结", "di": "05010101", "history": "Times", "historyMax": 3,
+          "fields": [ { "name": "总", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "尖", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "峰", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "平", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "谷", "format": "XXXXXX.XX", "unit": "kWh" } ] },
+        { "id": "F.Hour.Time", "name": "整点冻结时间", "group": "整点冻结", "di": "05040001", "format": "YYMMDDhhmm", "history": "Times", "historyMax": 254 },
+        { "id": "F.Hour.Fwd", "name": "整点冻结正向有功总电能", "group": "整点冻结", "di": "05040101", "format": "XXXXXX.XX", "unit": "kWh", "history": "Times", "historyMax": 254 },
+        { "id": "F.Hour.Rev", "name": "整点冻结反向有功总电能", "group": "整点冻结", "di": "05040201", "format": "XXXXXX.XX", "unit": "kWh", "history": "Times", "historyMax": 254 },
+        { "id": "F.Day.Time", "name": "日冻结时间", "group": "日冻结", "di": "05060001", "format": "YYMMDDhhmm", "history": "Times", "historyMax": 62 },
+        { "id": "F.Day.Fwd", "name": "日冻结正向有功电能", "group": "日冻结", "di": "05060101", "history": "Times", "historyMax": 62,
+          "fields": [ { "name": "总", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "尖", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "峰", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "平", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "谷", "format": "XXXXXX.XX", "unit": "kWh" } ] },
+        { "id": "F.Day.Rev", "name": "日冻结反向有功电能", "group": "日冻结", "di": "05060201", "history": "Times", "historyMax": 62,
+          "fields": [ { "name": "总", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "尖", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "峰", "format": "XXXXXX.XX", "unit": "kWh" },
+                      { "name": "平", "format": "XXXXXX.XX", "unit": "kWh" }, { "name": "谷", "format": "XXXXXX.XX", "unit": "kWh" } ] }
+      ]
+    }
+  ]
+}

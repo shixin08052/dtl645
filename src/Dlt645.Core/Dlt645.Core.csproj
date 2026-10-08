@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Dlt645.Core</RootNamespace>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 数据项配置表：内置一份；程序目录下放置同名文件可覆盖（便于现场扩展） -->
+    <EmbeddedResource Include="DataItems\DataItems.json" LogicalName="Dlt645.Core.DataItems.json" />
+  </ItemGroup>
+
+</Project>

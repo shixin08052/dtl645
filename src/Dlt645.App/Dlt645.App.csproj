@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Dlt645.App</RootNamespace>
+    <AssemblyName>Dlt645Reader</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 允许在非 Windows 系统上编译（CI / 交叉编译），运行仍需 Windows -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <Version>1.0.0</Version>
+    <Product>DL/T645 红外抄表工具</Product>
+    <Description>DL/T 645-2007 电表红外读取工具（只读）</Description>
+    <Company>DLT645 Reader</Company>
+    <Copyright>Copyright © 2026</Copyright>
+  </PropertyGroup>
+
+  <!-- 发布为单个 exe：dotnet publish -c Release -r win-x64（详见 README / publish.bat） -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dlt645.Core\Dlt645.Core.csproj" />
+  </ItemGroup>
+
+</Project>

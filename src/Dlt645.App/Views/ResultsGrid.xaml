@@ -1,0 +1,42 @@
+<UserControl x:Class="Dlt645.App.Views.ResultsGrid"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- DataContext 为 PageViewModel，显示其 Results -->
+    <DataGrid ItemsSource="{Binding Results}" Style="{StaticResource ResultGrid}">
+        <DataGrid.RowStyle>
+            <Style TargetType="DataGridRow">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                        <Setter Property="Background" Value="#FFF8E1"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsError}" Value="True">
+                        <Setter Property="Background" Value="#FFEBEE"/>
+                        <Setter Property="Foreground" Value="#B71C1C"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </DataGrid.RowStyle>
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="序号" Binding="{Binding Index}" Width="46"/>
+            <DataGridTextColumn Header="数据项" Binding="{Binding DisplayName}" Width="2*" MinWidth="180"/>
+            <DataGridTextColumn Header="费率" Binding="{Binding Tariff}" Width="46"/>
+            <DataGridTextColumn Header="时段" Binding="{Binding Period}" Width="86"/>
+            <DataGridTextColumn Header="数值" Binding="{Binding Value}" Width="1.4*" MinWidth="130">
+                <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="FontFamily" Value="Consolas, Microsoft YaHei UI"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                    </Style>
+                </DataGridTextColumn.ElementStyle>
+            </DataGridTextColumn>
+            <DataGridTextColumn Header="单位" Binding="{Binding Unit}" Width="64"/>
+            <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="1.3*" MinWidth="110"/>
+            <DataGridTextColumn Header="数据标识" Binding="{Binding Di}" Width="80" FontFamily="Consolas"/>
+            <DataGridTextColumn Header="原始数据" Binding="{Binding Raw}" Width="*" MinWidth="90" FontFamily="Consolas"/>
+            <DataGridTextColumn Header="读取时间" Binding="{Binding TimeText}" Width="140"/>
+            <DataGridTextColumn Header="耗时ms" Binding="{Binding ElapsedMs}" Width="60"/>
+        </DataGrid.Columns>
+    </DataGrid>
+</UserControl>
