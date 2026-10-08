@@ -12,23 +12,24 @@
 
         <StackPanel Margin="0,0,0,6">
             <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold" Foreground="#263238"/>
-            <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Description}" Margin="0,2,0,0"/>
         </StackPanel>
 
         <Border Grid.Row="1" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Background="#FAFCFE" Padding="10,8">
             <StackPanel>
                 <WrapPanel>
                     <TextBlock Text="数据标识 DI" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Width="150" FontFamily="Consolas" FontSize="18" MaxLength="16"
+                    <TextBox Width="130" FontFamily="Consolas" FontSize="17" MaxLength="16"
                              Text="{Binding DiText, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="按 DI3 DI2 DI1 DI0 顺序输入 8 位十六进制，可带空格，例如 00 01 00 00">
+                             ToolTip="按 DI3 DI2 DI1 DI0 顺序输入 8 位十六进制，可带空格。&#x0a;常用示例：00010000 正向有功总电能 · 0201FF00 三相电压数据块 · 04000401 通信地址 · 04000101 日期 · 03110000 掉电次数">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding ReadCommand}"/>
                         </TextBox.InputBindings>
                     </TextBox>
-                    <TextBlock Text="解析格式" FontWeight="Bold" VerticalAlignment="Center" Margin="16,0,8,0"/>
-                    <ComboBox Width="230" ItemsSource="{Binding FormatOptions}" SelectedItem="{Binding SelectedFormat}"/>
-                    <CheckBox Content="最高位为符号位" IsChecked="{Binding Signed}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <TextBlock Text="格式" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <ComboBox Width="190" ItemsSource="{Binding FormatOptions}" SelectedItem="{Binding SelectedFormat}"/>
+                    <CheckBox Content="有符号" IsChecked="{Binding Signed}" VerticalAlignment="Center" Margin="0,0,12,0" ToolTip="最高位为符号位"/>
                     <Button Content="读取 (Enter)" Command="{Binding ReadCommand}" Style="{StaticResource PrimaryButton}" MinWidth="110" MinHeight="32"/>
                     <Button Content="清空结果" Command="{Binding ClearResultsCommand}"/>
                 </WrapPanel>
@@ -47,17 +48,15 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <TextBlock Text="常用示例：00010000 正向有功总电能 · 0201FF00 三相电压数据块 · 04000401 通信地址 · 04000101 日期 · 03110000 掉电次数"
-                           Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 
-        <DockPanel Grid.Row="2" Margin="0,6">
+        <DockPanel Grid.Row="2" Margin="0,6,0,0" Visibility="{Binding LastRawText, Converter={StaticResource NotEmptyToVis}}">
             <TextBlock Text="原始数据" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <TextBox Text="{Binding LastRawText, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" Background="#F5F7F9"
                      ToolTip="可选中复制"/>
         </DockPanel>
 
-        <views:ResultsGrid Grid.Row="3"/>
+        <views:ResultsGrid Grid.Row="3" Margin="0,6,0,0"/>
     </Grid>
 </UserControl>

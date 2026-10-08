@@ -221,21 +221,45 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,4">
-                        <TextBlock Text="{Binding CurrentError.Headline}" FontWeight="Bold" FontSize="15" Foreground="#B71C1C"/>
-                        <TextBlock Text="{Binding CurrentError.Detail}" Margin="12,1,0,0" Foreground="#5D4037" TextWrapping="Wrap" MaxWidth="760"/>
+                    <StackPanel Grid.ColumnSpan="2">
+                        <TextBlock TextWrapping="Wrap">
+                            <Run Text="{Binding CurrentError.Headline, Mode=OneWay}" FontWeight="Bold" FontSize="15" Foreground="#B71C1C"/>
+                            <Run Text="  "/>
+                            <Run Text="{Binding CurrentError.Detail, Mode=OneWay}" Foreground="#5D4037"/>
+                        </TextBlock>
+                        <DockPanel Margin="0,2,0,0">
+                            <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding ErrorDetailsExpanded}" Padding="8,1" MinHeight="22" Margin="8,0,0,0"
+                                          Cursor="Hand" VerticalAlignment="Top">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton">
+                                        <Setter Property="Content" Value="原因与建议 ▼"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter Property="Content" Value="收起详情 ▲"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                            <TextBlock Text="{Binding CurrentError.FirstSuggestion}" Foreground="#1B5E20" TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding CurrentError.Suggestions}"/>
+                        </DockPanel>
                     </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,0">
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,6,12,0"
+                                Visibility="{Binding ErrorDetailsExpanded, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="可能原因" FontWeight="SemiBold" Foreground="#6D4C41"/>
                         <TextBlock Text="{Binding CurrentError.Causes}" TextWrapping="Wrap" Foreground="#4E342E"/>
                     </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="1">
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,6,0,0"
+                                Visibility="{Binding ErrorDetailsExpanded, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="排查建议" FontWeight="SemiBold" Foreground="#1B5E20"/>
                         <TextBlock Text="{Binding CurrentError.Suggestions}" TextWrapping="Wrap" Foreground="#1B5E20"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Grid.RowSpan="2" VerticalAlignment="Top">
-                        <Button Content="复制" Command="{Binding CopyErrorCommand}" Margin="0,0,0,4" ToolTip="复制错误信息，发给工程师"/>
-                        <Button Content="关闭" Command="{Binding DismissErrorCommand}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="复制" Command="{Binding CopyErrorCommand}" ToolTip="复制完整错误信息（含原因与建议），发给工程师"/>
+                            <Button Content="关闭" Command="{Binding DismissErrorCommand}" Margin="0"/>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </Border>

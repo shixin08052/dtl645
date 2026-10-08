@@ -12,6 +12,7 @@ public sealed class ErrorBanner
         Detail = ex.Detail ?? string.Empty;
         Causes = ex.Info.Causes.Count == 0 ? string.Empty : "• " + string.Join(Environment.NewLine + "• ", ex.Info.Causes);
         Suggestions = ex.Info.Suggestions.Count == 0 ? string.Empty : "• " + string.Join(Environment.NewLine + "• ", ex.Info.Suggestions);
+        FirstSuggestion = ex.Info.Suggestions.Count == 0 ? string.Empty : "建议：" + ex.Info.Suggestions[0];
         IsWarning = isWarning;
         Time = DateTime.Now;
     }
@@ -21,6 +22,8 @@ public sealed class ErrorBanner
     public string Detail { get; }
     public string Causes { get; }
     public string Suggestions { get; }
+    /// <summary>折叠状态下显示的第一条建议。</summary>
+    public string FirstSuggestion { get; }
     public bool IsWarning { get; }
     public DateTime Time { get; }
 

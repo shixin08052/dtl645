@@ -386,6 +386,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _currentError, value);
     }
 
+    private bool _errorDetailsExpanded = true;
+
+    /// <summary>错误提示条是否展开“可能原因 / 排查建议”（窗口较矮时默认收起，节省空间）。</summary>
+    public bool ErrorDetailsExpanded
+    {
+        get => _errorDetailsExpanded;
+        set => SetProperty(ref _errorDetailsExpanded, value);
+    }
+
     public void ShowError(MeterException ex, bool warning = false)
     {
         CurrentError = new ErrorBanner(ex, warning);
@@ -986,7 +995,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// 自动自检：使用模拟电表，依次打开每个功能页、勾选全部数据项读取、导出，
     /// 验证界面绑定与读取流程没有异常。返回失败项列表（为空表示通过）。
     /// </summary>
-    public async Task<IReadOnlyList<string>> RunSelfTestAsync(Func<Task> waitForUi, Func<double, string?>? checkLayout = null)
+    public async Task<IReadOnlyList<string>> RunSelfTestAsync(Func<Task> waitForUi, Func<double, string?>? checkLayout = null, Action<bool>? setMonitorCollapsed = null)
     {
         var failures = new List<string>();
         var outDir = Path.Combine(Path.GetTempPath(), "Dlt645Reader-selftest");
@@ -1058,6 +1067,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ResultExporter.ExportXlsx(Path.Combine(outDir, $"{page.Title}.xlsx"), header, page.Results);
             AddInfo($"自检：【{page.Title}】{page.Results.Count} 行");
         }
+
+        // 以下场景展开报文窗口，覆盖报文列表自动滚动等界面路径
+        setMonitorCollapsed?.Invoke(false);
+        await waitForUi();
 
         // 实时变量自动刷新
         var realtime = Pages.OfType<ReadPageViewModel>().FirstOrDefault(p => p.SupportsAutoRefresh);

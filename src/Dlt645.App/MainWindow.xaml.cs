@@ -28,7 +28,7 @@ public partial class MainWindow : Window
         if (s.WindowHeight >= MinHeight && s.WindowHeight <= SystemParameters.VirtualScreenHeight) Height = s.WindowHeight;
         if (s.WindowMaximized) WindowState = WindowState.Maximized;
         if (s.MonitorHeight >= 90 && s.MonitorHeight <= 1000) MonitorRow.Height = new GridLength(s.MonitorHeight);
-        MonitorToggle.IsChecked = s.MonitorCollapsed;
+        Loaded += (_, _) => ApplyAutoLayout();
 
         // 订阅 ListBox 自己的 Items（而不是 ViewModel 的集合），保证列表已处理完新增项后再滚动；
         // 并推迟到后台优先级执行，避免在集合变更通知过程中触发布局导致
@@ -55,11 +55,41 @@ public partial class MainWindow : Window
     }
 
     private double _expandedMonitorHeight = 160;
+    private bool _applyingLayout;
+
+    /// <summary>窗口较矮时节省空间：报文窗口（未手动设置过时）自动收起，错误详情默认折叠。</summary>
+    public void ApplyAutoLayout()
+    {
+        bool shortWindow = ActualHeight > 0 && ActualHeight < 800;
+        SetMonitorCollapsed(_vm.Settings.MonitorCollapsed ?? shortWindow, userChoice: false);
+        _vm.ErrorDetailsExpanded = ActualHeight >= 850;
+    }
+
+    /// <summary>收起 / 展开报文窗口。userChoice 为 true 时记住用户的选择。</summary>
+    public void SetMonitorCollapsed(bool collapsed, bool userChoice = false)
+    {
+        _applyingLayout = !userChoice;
+        try
+        {
+            if (MonitorToggle.IsChecked == collapsed) ApplyMonitorState(collapsed);
+            else MonitorToggle.IsChecked = collapsed;
+        }
+        finally
+        {
+            _applyingLayout = false;
+        }
+    }
 
     /// <summary>收起 / 展开报文监视窗口。</summary>
     private void MonitorToggle_Changed(object sender, RoutedEventArgs e)
     {
         bool collapsed = MonitorToggle.IsChecked == true;
+        ApplyMonitorState(collapsed);
+        if (!_applyingLayout) _vm.Settings.MonitorCollapsed = collapsed;
+    }
+
+    private void ApplyMonitorState(bool collapsed)
+    {
         if (collapsed)
         {
             if (MonitorRow.ActualHeight >= 90) _expandedMonitorHeight = MonitorRow.ActualHeight;
@@ -76,7 +106,6 @@ public partial class MainWindow : Window
             MonitorRow.MinHeight = 90;
             MonitorRow.Height = new GridLength(Math.Max(90, _expandedMonitorHeight));
         }
-        _vm.Settings.MonitorCollapsed = collapsed;
     }
 
     private void AddressBox_LostFocus(object sender, RoutedEventArgs e) => _vm.NormalizeAddress();

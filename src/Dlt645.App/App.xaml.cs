@@ -66,11 +66,13 @@ public partial class App : Application
             window.WindowState = WindowState.Normal;
             window.Width = 1280;
             window.Height = 720;
+            window.UpdateLayout();
+            window.ApplyAutoLayout();
             var failures = await vm.RunSelfTestAsync(async () =>
             {
                 window.UpdateLayout();
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
-            }, min => CheckResultGridHeight(window, min));
+            }, min => CheckResultGridHeight(window, min), collapsed => window.SetMonitorCollapsed(collapsed));
             foreach (var f in failures) FileLogger.Error("自检失败：" + f);
             code = failures.Count == 0 ? 0 : 1;
             FileLogger.Info(code == 0 ? "==== 自检通过 ====" : $"==== 自检失败（{failures.Count} 项） ====");

@@ -23,7 +23,8 @@ public sealed class AppSettings
     public double WindowWidth { get; set; } = 1320;
     public double WindowHeight { get; set; } = 860;
     public bool WindowMaximized { get; set; }
-    public bool MonitorCollapsed { get; set; }
+    /// <summary>报文窗口是否收起；null 表示自动（窗口高度小于 800 时收起）。</summary>
+    public bool? MonitorCollapsed { get; set; }
     public double MonitorHeight { get; set; } = 160;
 
     private static readonly JsonSerializerOptions Options = new()
