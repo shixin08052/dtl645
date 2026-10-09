@@ -23,10 +23,18 @@ public partial class MainWindow : Window
         _vm = vm;
         DataContext = vm;
 
+        // 窗口不能超出屏幕可用区域（不含任务栏），否则标题栏和关闭按钮会跑到屏幕外。
+        // 屏幕放不下默认尺寸（如 1366×768 笔记本）时直接最大化。
         var s = vm.Settings;
-        if (s.WindowWidth >= MinWidth && s.WindowWidth <= SystemParameters.VirtualScreenWidth) Width = s.WindowWidth;
-        if (s.WindowHeight >= MinHeight && s.WindowHeight <= SystemParameters.VirtualScreenHeight) Height = s.WindowHeight;
-        if (s.WindowMaximized) WindowState = WindowState.Maximized;
+        var work = SystemParameters.WorkArea;
+        MinWidth = Math.Min(MinWidth, work.Width);
+        MinHeight = Math.Min(MinHeight, work.Height);
+        double w = s.WindowWidth >= MinWidth ? s.WindowWidth : Width;
+        double h = s.WindowHeight >= MinHeight ? s.WindowHeight : Height;
+        bool tooBig = w >= work.Width || h >= work.Height;
+        Width = Math.Min(w, work.Width);
+        Height = Math.Min(h, work.Height);
+        if (s.WindowMaximized || tooBig) WindowState = WindowState.Maximized;
         if (s.MonitorHeight >= 90 && s.MonitorHeight <= 1000) MonitorRow.Height = new GridLength(s.MonitorHeight);
         Loaded += (_, _) => ApplyAutoLayout();
 

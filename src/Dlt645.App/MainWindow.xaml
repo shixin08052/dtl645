@@ -5,7 +5,7 @@
         xmlns:views="clr-namespace:Dlt645.App.Views"
         xmlns:comm="clr-namespace:Dlt645.Core.Communication;assembly=Dlt645.Core"
         Title="{Binding WindowTitle}"
-        Width="1320" Height="860" MinWidth="1040" MinHeight="660"
+        Width="1320" Height="860" MinWidth="900" MinHeight="560"
         WindowStartupLocation="CenterScreen"
         FontFamily="Microsoft YaHei UI" FontSize="13"
         Background="{StaticResource WindowBackBrush}"
@@ -110,7 +110,7 @@
                         <WrapPanel>
                             <TextBlock Text="串口连接" Style="{StaticResource SectionTitle}"/>
                             <TextBlock Text="串口" Style="{StaticResource Label}"/>
-                            <ComboBox Width="330" ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}"
+                            <ComboBox Width="250" ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}"
                                       DisplayMemberPath="Display" IsEnabled="{Binding CanEditPort}" Margin="0,0,4,0"
                                       ToolTip="标有【CH340】的为红外通讯头"/>
                             <Button Content="刷新" Command="{Binding RefreshPortsCommand}" ToolTip="重新扫描串口（插拔 USB 后也会自动刷新）"/>
@@ -127,21 +127,34 @@
                             <Button Content="恢复默认" Command="{Binding RestoreDefaultsCommand}" ToolTip="2400bps，8 数据位，偶校验 E，1 停止位，超时 1500ms，重试 2 次"/>
                         </WrapPanel>
                         <WrapPanel Margin="0,6,0,0">
-                            <TextBlock Text="超时" Style="{StaticResource Label}" Margin="76,0,6,0"/>
+                            <TextBlock Text="超时" Style="{StaticResource Label}"/>
                             <TextBox Width="60" Text="{Binding TimeoutMs, UpdateSourceTrigger=LostFocus}" ToolTip="每次发送后等待应答的时间，200~10000ms"/>
                             <TextBlock Text="ms" Style="{StaticResource Label}" Margin="4,0,14,0"/>
                             <TextBlock Text="重试" Style="{StaticResource Label}"/>
                             <TextBox Width="40" Text="{Binding Retries, UpdateSourceTrigger=LostFocus}" ToolTip="失败后自动重发的次数，0~5"/>
                             <TextBlock Text="次" Style="{StaticResource Label}" Margin="4,0,20,0"/>
-                            <CheckBox Content="模拟电表模式（不接硬件演示 / 测试）" IsChecked="{Binding UseSimulator}"
-                                      IsEnabled="{Binding CanEditSerialParams}" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                            <TextBlock Text="← 更多模拟设置与故障注入见左侧“模拟电表”页" Foreground="{StaticResource MutedTextBrush}"
-                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            <CheckBox Content="模拟电表模式（不接硬件演示）" IsChecked="{Binding UseSimulator}"
+                                      IsEnabled="{Binding CanEditSerialParams}" VerticalAlignment="Center" FontWeight="SemiBold"
+                                      ToolTip="不接红外头和电表也能演示全部功能。更多模拟设置与故障注入见左侧“模拟电表”页"/>
                         </WrapPanel>
-                        <DockPanel Margin="76,6,0,0" Visibility="{Binding PortHint, Converter={StaticResource NotEmptyToVis}}">
-                            <Button DockPanel.Dock="Right" Content="驱动检测与安装" Command="{Binding OpenDriverPageCommand}"
-                                    Style="{StaticResource DangerButton}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                            <TextBlock Text="{Binding PortHint}" Foreground="#C62828" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <DockPanel Margin="0,6,0,0" Visibility="{Binding PortHint, Converter={StaticResource NotEmptyToVis}}">
+                            <Button DockPanel.Dock="Right" Content="驱动检测" Command="{Binding OpenDriverPageCommand}"
+                                    VerticalAlignment="Center" Margin="8,0,0,0" Padding="10,2" MinHeight="26"
+                                    ToolTip="查看 CH340 设备与驱动状态，必要时一键安装驱动"/>
+                            <TextBlock Text="{Binding PortHint}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                       ToolTip="{Binding PortHint}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#B26A00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PortHintIsError}" Value="True">
+                                                <Setter Property="Foreground" Value="#C62828"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </DockPanel>
                     </StackPanel>
 

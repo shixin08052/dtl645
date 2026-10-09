@@ -567,6 +567,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var list = PortEnumerator.Enumerate();
         _lastPortNames = list.Select(p => p.PortName).OrderBy(n => n).ToArray();
 
+        // 驱动检测（SetupAPI 枚举当前在线设备，最可靠）：
+        // 1) 插着 CH340 但没有驱动时，系统里根本不会出现串口，必须单独检测；
+        // 2) 用它确认哪个 COM 口是 CH340，弥补注册表方式在部分电脑上识别不到的问题。
+        var report = DriverPage.Refresh();
+        var ch340Ports = report.Devices
+            .Where(d => !d.HasProblem && !string.IsNullOrEmpty(d.PortName))
+            .GroupBy(d => d.PortName!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        list = list.Select(p => !p.IsCh340 && ch340Ports.TryGetValue(p.PortName, out var d)
+                ? p with
+                {
+                    IsCh340 = true,
+                    Description = string.IsNullOrEmpty(p.Description)
+                        ? System.Text.RegularExpressions.Regex.Replace(d.Name, @"\s*\(COM\d+\)\s*$", "")
+                        : p.Description,
+                }
+                : p)
+            .ToList();
+
         Ports.Clear();
         foreach (var p in list) Ports.Add(p);
 
@@ -574,8 +593,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                        ?? list.FirstOrDefault(p => p.IsCh340)
                        ?? list.FirstOrDefault();
 
-        // 驱动检测：插着 CH340 但没有驱动时，系统里根本不会出现串口，必须单独检测
-        var report = DriverPage.Refresh();
         var problem = report.ProblemDevice;
         if (problem != null && problem.InstanceId != _lastDriverProblem && !UseSimulator)
         {
@@ -603,19 +620,37 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private bool _portHintIsError;
+
+    /// <summary>提示为严重问题（CH340 已插入但驱动异常）时显示为红色。</summary>
+    public bool PortHintIsError
+    {
+        get => _portHintIsError;
+        private set => SetProperty(ref _portHintIsError, value);
+    }
+
+    /// <summary>串口提示（一行短句，完整说明见驱动检测页）。已确认有 CH340 串口时不提示。</summary>
     private void UpdatePortHint()
     {
         var driver = DriverPage.Report;
-        if (UseSimulator)
+        PortHintIsError = false;
+        if (UseSimulator || Ports.Any(p => p.IsCh340) || driver.Health == DriverHealth.Ok)
+        {
             PortHint = string.Empty;
+        }
         else if (driver.Health == DriverHealth.DeviceProblem)
-            PortHint = driver.Summary + " → 点击右侧“驱动检测与安装”";
+        {
+            PortHintIsError = true;
+            PortHint = $"CH340 驱动未安装或异常：{driver.ProblemDevice?.StatusText}";
+        }
         else if (Ports.Count == 0)
-            PortHint = "未检测到任何串口：请插入红外通讯头，并确认已安装 CH340 驱动（可点击右侧“驱动检测与安装”）。";
-        else if (!Ports.Any(p => p.IsCh340))
-            PortHint = "未检测到 CH340 设备：请检查红外通讯头是否插好、CH340 驱动是否安装（可点击右侧“驱动检测与安装”）。如使用其他芯片的通讯头，可直接选择对应串口。";
+        {
+            PortHint = "未检测到串口，请插入红外通讯头";
+        }
         else
-            PortHint = string.Empty;
+        {
+            PortHint = "未识别到 CH340 串口（使用其他芯片的通讯头可忽略，直接选择串口即可）";
+        }
     }
 
     private void RestoreDefaults()
