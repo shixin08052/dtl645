@@ -124,7 +124,7 @@
                             <TextBlock Text="停止位" Style="{StaticResource Label}"/>
                             <ComboBox Width="50" ItemsSource="{Binding StopBitsOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
                                       SelectedValue="{Binding StopBits}" IsEnabled="{Binding CanEditSerialParams}"/>
-                            <Button Content="恢复默认" Command="{Binding RestoreDefaultsCommand}" ToolTip="2400bps，8 数据位，偶校验 E，1 停止位，超时 1500ms，重试 2 次"/>
+                            <Button Content="恢复默认" Command="{Binding RestoreDefaultsCommand}" ToolTip="1200bps，8 数据位，偶校验 E，1 停止位，超时 1500ms，重试 2 次（电表红外口通用参数）"/>
                         </WrapPanel>
                         <WrapPanel Margin="0,6,0,0">
                             <TextBlock Text="超时" Style="{StaticResource Label}"/>

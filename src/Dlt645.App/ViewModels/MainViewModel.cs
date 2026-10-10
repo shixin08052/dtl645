@@ -661,7 +661,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StopBits = SerialSettings.DefaultStopBits;
         TimeoutMs = CommOptions.DefaultTimeoutMs;
         Retries = CommOptions.DefaultRetries;
-        AddInfo("串口参数已恢复默认：2400bps，8 数据位，偶校验 E，1 停止位，超时 1500ms，重试 2 次");
+        AddInfo("串口参数已恢复默认：1200bps，8 数据位，偶校验 E，1 停止位，超时 1500ms，重试 2 次");
     }
 
     // ================================================================ 连接

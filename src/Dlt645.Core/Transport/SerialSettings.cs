@@ -2,10 +2,10 @@ using System.IO.Ports;
 
 namespace Dlt645.Core.Transport;
 
-/// <summary>串口参数。DL/T 645 红外口默认 2400bps、8 数据位、偶校验、1 停止位。</summary>
+/// <summary>串口参数。DL/T 645 电表红外口默认 1200bps、8 数据位、偶校验、1 停止位。</summary>
 public sealed record SerialSettings
 {
-    public const int DefaultBaudRate = 2400;
+    public const int DefaultBaudRate = 1200;
     public const int DefaultDataBits = 8;
     public const Parity DefaultParity = Parity.Even;
     public const StopBits DefaultStopBits = StopBits.One;
