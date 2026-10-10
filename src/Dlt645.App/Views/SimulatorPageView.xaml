@@ -57,6 +57,8 @@
                     </WrapPanel>
                     <WrapPanel Margin="0,8,0,0">
                         <CheckBox Content="模拟红外回显（发出的帧会先被自己收到，演示回显过滤）" IsChecked="{Binding Echo}" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                        <CheckBox Content="只认实际表号（读数据时不响应公共地址 AA，很多现场电表如此）" IsChecked="{Binding RejectWildcardRead}" VerticalAlignment="Center" Margin="0,0,20,0"
+                                  ToolTip="勾选后，表号框为 AAAAAAAAAAAA 时软件会自动先读出实际表号再读数据"/>
                         <TextBlock Text="应答延迟" Style="{StaticResource Label}"/>
                         <TextBox Width="60" Text="{Binding ResponseDelayMs, UpdateSourceTrigger=LostFocus}"/>
                         <TextBlock Text="ms" Style="{StaticResource Label}" Margin="4,0,20,0"/>

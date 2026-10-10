@@ -263,3 +263,47 @@ public class SimulatorFaultTests
         Assert.NotEqual("12.34", DataItemDecoder.Decode(Catalog.Find(0x00010000)!.Item, r.Data)[0].Text);
     }
 }
+
+public class AddressResolutionTests
+{
+    private static readonly DataItemCatalog Catalog = DataItemCatalog.LoadBuiltIn();
+
+    [Fact]
+    public async Task MeterRejectingWildcardRead_ResolveThenReadSucceeds()
+    {
+        var meter = new SimulatedMeter(Catalog, MeterAddress.Parse("000012345678")) { AcceptWildcardRead = false };
+        var t = new SimulatedTransport(meter) { ResponseDelayMs = 5 };
+        t.Open();
+        var client = new MeterClient(t, new CommOptions { TimeoutMs = 300, Retries = 0 });
+
+        // 直接用公共地址读数据：电表不应答
+        var ex = await Assert.ThrowsAsync<MeterException>(() => client.ReadDataAsync(MeterAddress.Wildcard, 0x00010000));
+        Assert.Equal(ErrorCode.Timeout, ex.Code);
+
+        // 先解析实际表号再读：成功
+        var actual = await client.ResolveAddressAsync(MeterAddress.Wildcard);
+        Assert.Equal("000012345678", actual.Text);
+        var r = await client.ReadDataAsync(actual, 0x00010000);
+        Assert.Equal(4, r.Data.Length);
+    }
+
+    [Fact]
+    public async Task Resolve_RealAddress_IsReturnedUnchanged_WithoutTraffic()
+    {
+        var t = new ScriptedTransport(echo: false);
+        var client = new MeterClient(t, new CommOptions { TimeoutMs = 100, Retries = 0 });
+        var a = MeterAddress.Parse("123456789012");
+        Assert.Same(a, await client.ResolveAddressAsync(a));
+        Assert.Empty(t.Written);
+    }
+
+    [Fact]
+    public async Task Resolve_PartialWildcard_MismatchIsReported()
+    {
+        var t = new SimulatedTransport(new SimulatedMeter(Catalog, MeterAddress.Parse("000012345678"))) { ResponseDelayMs = 5 };
+        t.Open();
+        var client = new MeterClient(t, new CommOptions { TimeoutMs = 300, Retries = 0 });
+        var ex = await Assert.ThrowsAsync<MeterException>(() => client.ResolveAddressAsync(MeterAddress.Parse("AAAA99999999")));
+        Assert.Equal(ErrorCode.AddressMismatch, ex.Code);
+    }
+}

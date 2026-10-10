@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 真实串口回环测试：用软件真正的 SerialPortTransport + MeterClient，经虚拟串口（socat）与独立实现的假电表通讯 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Dlt645.Core\Dlt645.Core.csproj" />
+  </ItemGroup>
+</Project>

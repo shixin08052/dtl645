@@ -25,6 +25,12 @@ public sealed class SimulatedMeter
 
     public MeterAddress Address { get; set; }
 
+    /// <summary>
+    /// 为 false 时模拟“只认实际表号”的电表：读数据 / 读后续数据请求中含 AA 通配的地址一律不应答
+    /// （读通信地址 13H 仍然响应公共地址）。很多现场电表就是这样。
+    /// </summary>
+    public bool AcceptWildcardRead { get; set; } = true;
+
     /// <summary>单帧最多携带的数据字节数（不含 DI）。</summary>
     public int MaxDataPerFrame { get; set; } = 48;
 
@@ -68,6 +74,7 @@ public sealed class SimulatedMeter
             case ControlCode.ReadData:
             {
                 if (!reqAddr.Matches(Address)) return null;
+                if (!AcceptWildcardRead && reqAddr.HasWildcard) return null;
                 if (ForcedErrorWord is byte forced) return Build(ControlCode.ReadDataError, new[] { forced });
                 if (req.Data.Length < 4) return Build(ControlCode.ReadDataError, new byte[] { 0x01 });
                 uint di = DataId.FromWireBytes(req.Data);
@@ -87,6 +94,7 @@ public sealed class SimulatedMeter
             case ControlCode.ReadFollow:
             {
                 if (!reqAddr.Matches(Address)) return null;
+                if (!AcceptWildcardRead && reqAddr.HasWildcard) return null;
                 if (ForcedErrorWord is byte forcedFollow) return Build(ControlCode.ReadFollowError, new[] { forcedFollow });
                 if (req.Data.Length < 5) return Build(ControlCode.ReadFollowError, new byte[] { 0x01 });
                 uint di = DataId.FromWireBytes(req.Data);

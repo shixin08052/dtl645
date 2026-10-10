@@ -55,6 +55,20 @@ public sealed class MeterClient
     public Task<DataResult> ReadDataAsync(MeterAddress address, uint di, CancellationToken ct = default) =>
         RunAsync($"读数据 {DataId.Format(di)}", () => ReadDataCore(address, di, ct), ct);
 
+    /// <summary>
+    /// 表号含 AA 通配时，先用读通信地址命令（13H）取得电表实际表号。
+    /// 很多电表只对 13H 响应公共地址，读数据（11H）只认自己的实际表号，对公共地址完全不应答。
+    /// 表号不含通配时原样返回。
+    /// </summary>
+    public async Task<MeterAddress> ResolveAddressAsync(MeterAddress requested, CancellationToken ct = default)
+    {
+        if (!requested.HasWildcard) return requested;
+        var actual = await ReadAddressAsync(ct);
+        return requested.Matches(actual)
+            ? actual
+            : throw new MeterException(ErrorCode.AddressMismatch, $"表号框为 {requested}，读到的电表表号为 {actual}");
+    }
+
     // ================================================================ 事务
 
     private Task<T> RunAsync<T>(string operation, Func<T> body, CancellationToken ct) =>

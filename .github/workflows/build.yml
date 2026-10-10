@@ -39,3 +39,20 @@ jobs:
         with:
           name: Dlt645Reader-win-x64
           path: publish/Dlt645Reader.exe
+
+  # 真实串口回环测试：软件真正的串口层 ↔ 虚拟串口（socat）↔ 独立实现的假电表
+  serial-loopback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 安装 socat
+        run: sudo apt-get update && sudo apt-get install -y socat
+
+      - name: 串口回环测试（有回显 / 无回显 / 只认实际表号）
+        run: bash tests/SerialLoopback/run.sh

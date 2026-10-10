@@ -326,12 +326,43 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return calendar;
     }
 
+    private string? _addressResolveFailedFor;
+
+    /// <summary>
+    /// 表号框为公共地址（含 AA）时，先自动读出实际表号并填入表号框，后续都用实际表号读取。
+    /// 读不到时退回原来的地址继续读（同一表号本次连接内不再重复尝试）。
+    /// </summary>
+    private async Task<MeterAddress> ResolveAddressAsync(MeterClient client, MeterAddress address, CancellationToken ct)
+    {
+        if (!address.HasWildcard || _addressResolveFailedFor == address.Text) return address;
+        var previous = ProgressText;
+        ProgressText = "表号为公共地址，正在先读取电表实际表号…";
+        try
+        {
+            var actual = await client.ResolveAddressAsync(address, ct);
+            MeterAddressText = actual.Text;
+            AddInfo($"已读取到实际表号 {actual.Text} 并填入表号框，后续用实际表号读取（很多电表不响应公共地址 AAAAAAAAAAAA 的读数据命令）");
+            return actual;
+        }
+        catch (MeterException ex) when (!ex.IsPortFault && ex.Code != ErrorCode.NotConnected)
+        {
+            _addressResolveFailedFor = address.Text;
+            AddInfo($"未能读取实际表号（{ex.Code.ToCodeString()} {ex.Info.Title}），继续使用 {address.Text} 读取");
+            return address;
+        }
+        finally
+        {
+            ProgressText = previous;
+        }
+    }
+
     /// <summary>“读取结算日”按钮：强制重新读取。</summary>
     public async Task ReadSettlementAsync()
     {
         if (!EnsureReady(out var client, out var address)) return;
         await RunExclusiveAsync("读取结算日", async ct =>
         {
+            address = await ResolveAddressAsync(client, address, ct);
             var cal = await LoadSettlementAsync(client, address, ct);
             ProgressText = cal is null ? "未能读取结算日" : "结算日：" + cal.Describe();
         });
@@ -736,6 +767,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _transport = null;
         _client = null;
         if (IsConnected) AddInfo($"已断开（{reason}）");
+        _addressResolveFailedFor = null;
         if (_calendar != null) SetCalendar(null, null);
         IsConnected = false;
         State = ConnectionState.NotConnected;
@@ -891,6 +923,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         await RunExclusiveAsync($"读取{page.Title}", async ct =>
         {
+            address = await ResolveAddressAsync(client, address, ct);
             page.Results.Clear();
             page.IsSelectorExpanded = false;
             page.LastMeterNo = address.Text;
@@ -975,6 +1008,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         await RunExclusiveAsync($"读取 DI {DataId.Format(di)}", async ct =>
         {
+            address = await ResolveAddressAsync(client, address, ct);
             page.LastMeterNo = address.Text;
             page.LastReadTime = DateTime.Now;
             try
@@ -1322,6 +1356,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (MeterAddressText != "202600000001") failures.Add($"【模拟电表】修改模拟表号后读取表号应为 202600000001，实际 {MeterAddressText}");
         sim.AddressText = SimulatorPageViewModel.DefaultAddress;
         sim.ApplyAddressCommand.Execute(null);
+
+        // 7. 只认实际表号的电表：表号框为公共地址时应自动先读出实际表号再读数据
+        sim.RejectWildcardRead = true;
+        MeterAddressText = MeterAddress.WildcardText;
+        row = await ReadCustom("00010000");
+        if (row is null || row.IsError) failures.Add($"【模拟电表】电表只认实际表号时，公共地址读取应自动换成实际表号，实际结果 {row?.Status}");
+        if (MeterAddressText != SimulatorPageViewModel.DefaultAddress) failures.Add($"【模拟电表】应自动填入实际表号，表号框为 {MeterAddressText}");
+        sim.RejectWildcardRead = false;
         MeterAddressText = MeterAddress.WildcardText;
         sim.ResetFaultsCommand.Execute(null);
         SelectedPage = sim;

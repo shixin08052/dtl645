@@ -38,6 +38,7 @@ public sealed class SimulatorPageViewModel : PageViewModel
     private int _responseDelayMs = 80;
     private int _maxDataPerFrame = 48;
     private bool _noResponse;
+    private bool _rejectWildcardRead;
     private SelectableOption<byte?> _selectedErrorWord;
     private string _customDi = "00010000";
     private string _customData = "00 00 12 34";
@@ -141,6 +142,17 @@ public sealed class SimulatorPageViewModel : PageViewModel
         }
     }
 
+    /// <summary>模拟“只认实际表号”的电表：读数据时不响应公共地址 AA（读表号 13H 仍响应）。</summary>
+    public bool RejectWildcardRead
+    {
+        get => _rejectWildcardRead;
+        set
+        {
+            if (!SetProperty(ref _rejectWildcardRead, value)) return;
+            if (Main.Simulator is { } t) t.Meter.AcceptWildcardRead = !value;
+        }
+    }
+
     // ---------------------------------------------------------------- 故障模拟
 
     public bool NoResponse
@@ -238,6 +250,7 @@ public sealed class SimulatorPageViewModel : PageViewModel
         var meter = new SimulatedMeter(Main.Catalog, address)
         {
             MaxDataPerFrame = MaxDataPerFrame,
+            AcceptWildcardRead = !RejectWildcardRead,
             ForcedErrorWord = SelectedErrorWord.Value,
         };
         foreach (var e in CustomEntries) meter.SetData(e.Di, e.Data);
